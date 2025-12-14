@@ -2,7 +2,6 @@ const supabase = require('../config/supabase');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
-
 const saltRounds = 10;
 
 // ---------------------- REGISTER ----------------------
