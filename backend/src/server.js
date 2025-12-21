@@ -1,21 +1,17 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
-const authRoutes = require('./routes/authRoutes')
-const authMiddleware = require('./middleware/auth');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-app.use(express.json());
-
-
-// Rutas de test
-app.use('/api/auth', authRoutes);
 
 // Middlewares
-app.use(express.json());
 app.use(cors());
+app.use(express.json());
 
+// Importar rutas
+const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
 
 // Ruta principal
 app.get('/', (req, res) => {
@@ -26,12 +22,11 @@ app.get('/', (req, res) => {
   });
 });
 
-
+// Usar las rutas
+app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes); 
 
 // Iniciar servidor
 app.listen(PORT, () => {
-  console.log(`🚀 Servidor corriendo en http://localhost:${PORT}
-    `);
-    console.log("Servidor arrancando con archivo:", __filename);
-
+  console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
 });

@@ -20,4 +20,15 @@ const authMiddleware = (req, res, next) => {
     }
 };
 
-module.exports = { authMiddleware };
+const adminMiddleware = (req, res, next) => {
+    if (req.userRol !== 'admin') {
+        return res.status(403).json({
+            success: false,
+            message: 'Acceso denegado: se requiere rol admin'
+    });
+  }
+  
+  next();
+};
+
+module.exports = { authMiddleware, adminMiddleware };
