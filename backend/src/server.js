@@ -12,6 +12,7 @@ app.use(express.json());
 // Importar rutas
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
+const entryRoutes = require('./routes/entryRoutes');
 
 // Ruta principal
 app.get('/', (req, res) => {
@@ -25,6 +26,7 @@ app.get('/', (req, res) => {
 // Usar las rutas
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes); 
+app.use('/api/entries', entryRoutes);
 
 // Iniciar servidor
 app.listen(PORT, () => {
