@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 require('dotenv').config();
 
 const app = express();
@@ -27,6 +28,7 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes); 
 app.use('/api/entries', entryRoutes);
+app.use(express.static(path.join(__dirname, '../../frontend')));
 
 // Iniciar servidor
 app.listen(PORT, () => {

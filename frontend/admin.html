@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Panel Admin</title>
+</head>
+<body>
+  <h1>Panel de Administración</h1>
+  <p id="mensaje"></p>
+
+  <h2>Usuarios</h2>
+  <table border="1" id="tablaUsuarios">
+    <thead>
+      <tr>
+        <th>Nombre</th>
+        <th>Email</th>
+        <th>Username</th>
+        <th>Rol</th>
+        <th>Activo</th>
+        <th>Creado</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <h2>Entradas de hoy</h2>
+  <table border="1" id="tablaEntradasHoy">
+    <thead>
+      <tr>
+        <th>Usuario</th>
+        <th>Entrada</th>
+        <th>Salida</th>
+        <th>Duración</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <h2>Usuarios dentro ahora</h2>
+  <ul id="usuariosDentro"></ul>
+
+  <script src="js/admin.js"></script>
+</body>
+</html>

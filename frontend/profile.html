@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Mi Perfil</title>
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
+</head>
+<body>
+  <h2>Mi Perfil</h2>
+  <div id="perfil">Cargando...</div>
+
+  <script>
+    async function cargarPerfil() {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        document.getElementById('perfil').innerText = "No estás logueado";
+        return;
+      }
+
+      try {
+        const res = await fetch('http://localhost:5000/api/users/me', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        const data = await res.json();
+
+        const div = document.getElementById('perfil');
+
+        if (!res.ok || !data.success) {
+          div.innerText = data.message || "Error al cargar perfil";
+          return;
+        }
+
+        const user = data.user;
+        div.innerHTML = `
+          <p>Nombre: ${user.nombre}</p>
+          <p>Email: ${user.email}</p>
+          <p>Username: ${user.username}</p>
+          <div id="qr"></div>
+          <img src="${user.qr_code}" alt="QR Code" />
+        `;
+
+        new QRCode(document.getElementById("qr"), {
+            text: user.qr_code,
+            width: 200,
+            height: 200
+  });
+
+      } catch (err) {
+        document.getElementById('perfil').innerText = "Error de conexión al servidor";
+      }
+    }
+
+    cargarPerfil();
+  </script>
+</body>
+</html>
