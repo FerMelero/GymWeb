@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Scanner Gym</title>
+  <script src="https://unpkg.com/html5-qrcode"></script>
+</head>
+<body>
+
+  <h1>Escáner de acceso</h1>
+
+  <div id="reader" style="width:300px"></div>
+  <h2 id="resultado"></h2>
+
+  <script>
+    const resultEl = document.getElementById('resultado');
+
+    function onScanSuccess(decodedText) {
+      // Parar el escáner tras leer
+      html5QrcodeScanner.clear();
+
+      registrarEntrada(decodedText);
+    }
+
+    async function registrarEntrada(qr_code) {
+      try {
+        const res = await fetch('/api/entries', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ qr_code })
+        });
+
+        const data = await res.json();
+
+        if (!res.ok) {
+          resultEl.innerText = data.message;
+          resultEl.style.color = 'red';
+          reiniciarScanner();
+          return;
+        }
+
+        resultEl.innerText = data.message;
+        resultEl.style.color = data.action === 'entrada' ? 'green' : 'blue';
+
+        // Volver a escanear tras 3 segundos
+        setTimeout(reiniciarScanner, 3000);
+
+      } catch (err) {
+        resultEl.innerText = 'Error de conexión';
+        resultEl.style.color = 'red';
+        reiniciarScanner();
+      }
+    }
+
+    function reiniciarScanner() {
+      html5QrcodeScanner.render(onScanSuccess);
+    }
+
+    const html5QrcodeScanner = new Html5QrcodeScanner(
+      "reader",
+      { fps: 10, qrbox: 250 }
+    );
+
+    html5QrcodeScanner.render(onScanSuccess);
+  </script>
+
+</body>
+</html>

@@ -7,7 +7,7 @@ if (!token) {
 
 // Cargar usuarios
 async function cargarUsuarios() {
-  const res = await fetch('http://localhost:5000/api/users', {
+  const res = await fetch('/api/users', {
     headers: { 'Authorization': `Bearer ${token}` }
   });
   const data = await res.json();
@@ -33,51 +33,79 @@ async function cargarUsuarios() {
   });
 }
 
+function calcularDuracion(entrada, salida) {
+  if (!salida) return '-';
+  const diff = new Date(salida) - new Date(entrada);
+  const horas = Math.floor(diff / 1000 / 60 / 60);
+  const minutos = Math.floor((diff / 1000 / 60) % 60);
+  return `${horas}h ${minutos}min`;
+}
+
 // Cargar entradas de hoy
 async function cargarEntradasHoy() {
-  const res = await fetch('http://localhost:5000/api/entries/today', {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  const data = await res.json();
-  const tbody = document.querySelector('#tablaEntradasHoy tbody');
+  try {
+    const res = await fetch('/api/entries/today', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
 
-  if (!res.ok || !data.success) {
-    tbody.innerHTML = `<tr><td colspan="4">${data.message || "Error al cargar entradas"}</td></tr>`;
-    return;
+    const data = await res.json();
+    const tbody = document.querySelector('#tablaEntradasHoy tbody');
+
+    if (!res.ok || !data.success) {
+      tbody.innerHTML = `<tr><td colspan="4">${data.message || "Error al cargar entradas"}</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = '';
+
+    // Recorrer entradas (nota: vienen en data.entradas y el usuario está en e.users)
+    data.entradas.forEach(e => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${e.users.nombre}</td>
+        <td>${new Date(e.entrada_timestamp).toLocaleString()}</td>
+        <td>${e.salida_timestamp ? new Date(e.salida_timestamp).toLocaleString() : '-'}</td>
+        <td>${calcularDuracion(e.entrada_timestamp, e.salida_timestamp)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+  } catch (error) {
+    console.error('Error al cargar entradas de hoy:', error);
+    const tbody = document.querySelector('#tablaEntradasHoy tbody');
+    tbody.innerHTML = `<tr><td colspan="4">Error al cargar entradas</td></tr>`;
   }
-
-  tbody.innerHTML = '';
-  data.entries.forEach(e => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${e.user.nombre}</td>
-      <td>${e.entrada_timestamp}</td>
-      <td>${e.salida_timestamp || '-'}</td>
-      <td>${e.duracion || '-'}</td>
-    `;
-    tbody.appendChild(tr);
-  });
 }
 
 // Cargar usuarios dentro ahora
 async function cargarUsuariosDentro() {
-  const res = await fetch('http://localhost:5000/api/entries/inside', {
-    headers: { 'Authorization': `Bearer ${token}` }
-  });
-  const data = await res.json();
-  const ul = document.getElementById('usuariosDentro');
+  try {
+    const res = await fetch('/api/entries/inside', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+    const data = await res.json();
+    const ul = document.getElementById('usuariosDentro');
 
-  if (!res.ok || !data.success) {
-    ul.innerHTML = `<li>${data.message || "Error al cargar usuarios dentro"}</li>`;
-    return;
+    if (!res.ok || !data.success) {
+      ul.innerHTML = `<li>${data.message || "Error al cargar usuarios dentro"}</li>`;
+      return;
+    }
+
+    ul.innerHTML = '';
+
+    // Recorrer usuarios dentro (vienen en data.usuarios_dentro y el usuario está en e.users)
+    data.usuarios_dentro.forEach(e => {
+      const u = e.users; // el objeto user dentro de cada entry
+      const li = document.createElement('li');
+      li.textContent = `${u.nombre} (${u.username})`;
+      ul.appendChild(li);
+    });
+
+  } catch (error) {
+    console.error('Error al cargar usuarios dentro:', error);
+    const ul = document.getElementById('usuariosDentro');
+    ul.innerHTML = `<li>Error al cargar usuarios dentro</li>`;
   }
-
-  ul.innerHTML = '';
-  data.users.forEach(u => {
-    const li = document.createElement('li');
-    li.textContent = `${u.nombre} (${u.username})`;
-    ul.appendChild(li);
-  });
 }
 
 // Cargar todo al abrir la página
