@@ -3,16 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LogIn</title>
+    <title>Registro</title>
 </head>
 <body>
-    <form action="" method="post">
-        <p>Introduzca su nombre de usuario o email</p>
-        <input id="identifier" placeholder="EJ: correo@cl.com | user123">
+    <form id="registerForm">
+        <p>Introduzca su nombre</p>
+        <input id="nombre" placeholder="EJ: correo@cl.com | user123">
         <br>
-        <input type="password" name="password" id="password">
-        <input type="button" value="Enviar">
+        <p>Introduzca su número de teléfono</p>
+        <input id="telefono">
+        <br>
+        <p>Introduzca un nombre de usuario</p>
+        <input id="username">
+
+        <p>Introduzca su correo electrónico</p>
+        <input id="email" type="email">
+        <br>
+        <p>Introduzca una contraseña para su perfil</p>
+        <input type="password" name="contraseña" id="contraseña">
+        <input type="submit" value="Enviar">
     </form>
+    <p id="error"></p>
+    <script src="js/register.js"></script>
     
 </body>
 </html>
