@@ -65,6 +65,14 @@ exports.login = async (req, res) => {
   try {
     const { identifier, password } = req.body;
 
+    if (!identifier || !password) {
+      return res.status(400).json({
+        success: false,
+        message: 'Faltan credenciales'
+      });
+    }
+
+
     // Buscar por email o username
     const { data: user, error } = await supabase
       .from('users')
