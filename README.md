@@ -1,0 +1,1 @@
+El sistema implementa un control de acceso a un gimnasio mediante autenticación JWT, roles, registro de entradas y salidas con QR, y un panel de administración en tiempo real, asegurando seguridad, trazabilidad y usabilidad multiplataforma
