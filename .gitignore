@@ -1,0 +1,11 @@
+node_modules/
+.env
+.env.local
+.env.production
+*.log
+dist/
+build/
+backend/node_modules
+backend/package-lock.json
+backend/package-lock.json
+backend/package.json
