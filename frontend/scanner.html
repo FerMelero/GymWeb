@@ -2,68 +2,107 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Scanner Gym</title>
-  <script src="https://unpkg.com/html5-qrcode"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Escáner de acceso · GymWeb</title>
+  <meta name="theme-color" content="#0a0c0f">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23c6ff34'/%3E%3Cpath d='M10 16h12M8 11v10M24 11v10M5 13v6M27 13v6' stroke='%230a0c0f' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
 </head>
 <body>
+  <header class="navbar">
+    <div class="navbar-inner">
+      <a class="brand" data-home><span class="brand-mark"><i data-icon="dumbbell" data-size="20"></i></span><b class="brand-name">Gym<span>Web</span></b></a>
+      <nav class="nav-links">
+        <a href="/admin.html" data-admin-only><i data-icon="grid"></i><span>Panel</span></a>
+        <a href="/scanner.html" class="active"><i data-icon="scan"></i><span>Escáner</span></a>
+        <a href="/profile.html" data-auth-only><i data-icon="user"></i><span>Mi perfil</span></a>
+      </nav>
+      <div class="nav-user">
+        <div class="user-chip" data-auth-only>
+          <div class="avatar" data-user-avatar></div>
+          <div class="meta"><b data-user-name></b><small data-user-role></small></div>
+        </div>
+        <button class="btn btn-danger btn-sm" data-logout data-auth-only title="Cerrar sesión">
+          <i data-icon="logout" data-size="16"></i><span class="hide-sm">Cerrar sesión</span>
+        </button>
+        <a class="btn btn-sm" href="/login.html" data-guest-only>
+          <i data-icon="login" data-size="16"></i><span class="hide-sm">Iniciar sesión</span>
+        </a>
+      </div>
+    </div>
+  </header>
 
-  <h1>Escáner de acceso</h1>
+  <main class="page">
+    <div class="page-head">
+      <div>
+        <span class="eyebrow"><i data-icon="scan" data-size="14"></i>Recepción</span>
+        <h1 class="display">Control de <span class="accent">acceso</span></h1>
+        <p>Escanea el código QR del socio. El primer escaneo registra la entrada y el siguiente, la salida.</p>
+      </div>
+      <div style="text-align:right">
+        <div class="clock" id="clock">--:--</div>
+        <div class="clock-date" id="clockDate"></div>
+      </div>
+    </div>
 
-  <div id="reader" style="width:300px"></div>
-  <h2 id="resultado"></h2>
+    <div class="scanner-layout">
+      <!-- Cámara -->
+      <section class="card reader-card reveal">
+        <div class="reader-box" id="readerBox">
+          <div id="reader"></div>
+          <div class="corners"><i></i><i></i><i></i><i></i><span class="beam"></span></div>
+          <div class="reader-idle" id="readerIdle">
+            <span class="big-ico"><i data-icon="camera" data-size="36"></i></span>
+            <div>
+              <b style="font-size:1.1rem">Cámara desactivada</b>
+              <p class="muted" style="font-size:.9rem">Activa la cámara para empezar a escanear códigos.</p>
+            </div>
+            <button class="btn btn-primary" id="startBtn"><i data-icon="camera" data-size="18"></i>Activar cámara</button>
+          </div>
+        </div>
 
-  <script>
-    const resultEl = document.getElementById('resultado');
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:.6rem;margin-top:1rem;flex-wrap:wrap">
+          <span class="live-pill" id="camStatus"><span class="dot" style="color:var(--muted)"></span>Cámara apagada</span>
+          <button class="btn btn-sm btn-danger hidden" id="stopBtn"><i data-icon="stop" data-size="16"></i>Detener cámara</button>
+        </div>
 
-    function onScanSuccess(decodedText) {
-      // Parar el escáner tras leer
-      html5QrcodeScanner.clear();
+        <form class="manual" id="manualForm" autocomplete="off">
+          <div class="input-wrap">
+            <i data-icon="hash" class="input-icon"></i>
+            <input class="input" id="manualCode" placeholder="O introduce el código manualmente">
+          </div>
+          <button class="btn" type="submit"><i data-icon="check" data-size="16"></i>Registrar</button>
+        </form>
+      </section>
 
-      registrarEntrada(decodedText);
-    }
+      <!-- Resultado -->
+      <section class="card result-card reveal">
+        <div class="result" id="result">
+          <span class="result-ico" id="resultIco"><i data-icon="qr" data-size="48"></i></span>
+          <h2 class="display" id="resultTitle">Esperando código</h2>
+          <p id="resultText">Acerca el código QR a la cámara.</p>
+          <div class="result-meta" id="resultMeta"></div>
+        </div>
+        <div class="countdown" id="countdown"><i></i></div>
 
-    async function registrarEntrada(qr_code) {
-      try {
-        const res = await fetch('/api/entries', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ qr_code })
-        });
+        <div style="margin-top:1.2rem">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem">
+            <b style="font-size:.9rem;display:flex;gap:8px;align-items:center"><i data-icon="history" data-size="16"></i>Últimos accesos</b>
+            <span class="muted" style="font-size:.8rem">esta sesión</span>
+          </div>
+          <ul class="people" id="recent" style="border:1px solid var(--border);border-radius:var(--radius-sm)">
+            <li class="muted" style="justify-content:center;font-size:.85rem">Todavía no se ha escaneado ningún código</li>
+          </ul>
+        </div>
+      </section>
+    </div>
+  </main>
 
-        const data = await res.json();
-
-        if (!res.ok) {
-          resultEl.innerText = data.message;
-          resultEl.style.color = 'red';
-          reiniciarScanner();
-          return;
-        }
-
-        resultEl.innerText = data.message;
-        resultEl.style.color = data.action === 'entrada' ? 'green' : 'blue';
-
-        // Volver a escanear tras 3 segundos
-        setTimeout(reiniciarScanner, 3000);
-
-      } catch (err) {
-        resultEl.innerText = 'Error de conexión';
-        resultEl.style.color = 'red';
-        reiniciarScanner();
-      }
-    }
-
-    function reiniciarScanner() {
-      html5QrcodeScanner.render(onScanSuccess);
-    }
-
-    const html5QrcodeScanner = new Html5QrcodeScanner(
-      "reader",
-      { fps: 10, qrbox: 250 }
-    );
-
-    html5QrcodeScanner.render(onScanSuccess);
-  </script>
-
+  <script src="js/common.js"></script>
+  <script src="js/scanner.js"></script>
 </body>
 </html>

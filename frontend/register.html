@@ -1,31 +1,108 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registro</title>
-        <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crear cuenta · GymWeb</title>
+  <meta name="theme-color" content="#0a0c0f">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23c6ff34'/%3E%3Cpath d='M10 16h12M8 11v10M24 11v10M5 13v6M27 13v6' stroke='%230a0c0f' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
 </head>
-<body>
-    <form id="registerForm">
-        <p>Introduzca su nombre</p>
-        <input id="nombre" placeholder="EJ: correo@cl.com | user123">
-        <br>
-        <p>Introduzca su número de teléfono</p>
-        <input id="telefono">
-        <br>
-        <p>Introduzca un nombre de usuario</p>
-        <input id="username">
+<body class="auth-page">
+  <div class="bg-blobs"><span></span><span></span><span></span></div>
+  <div class="bg-grid"></div>
 
-        <p>Introduzca su correo electrónico</p>
-        <input id="email" type="email">
-        <br>
-        <p>Introduzca una contraseña para su perfil</p>
-        <input type="password" name="contraseña" id="contraseña">
-        <input type="submit" value="Enviar">
-    </form>
-    <p id="error"></p>
-    <script src="js/register.js"></script>
-    
+  <main class="auth">
+    <section class="auth-hero">
+      <a class="brand" href="/login.html"><span class="brand-mark"><i data-icon="dumbbell" data-size="20"></i></span><b class="brand-name">Gym<span>Web</span></b></a>
+      <h1 class="display">
+        <span class="line"><span>Tu primer</span></span>
+        <span class="line"><span class="accent">paso</span></span>
+        <span class="line"><span>empieza hoy.</span></span>
+      </h1>
+      <p class="lead">Crea tu cuenta de socio en menos de un minuto y recibe al instante tu código QR de acceso.</p>
+      <ul class="features">
+        <li><span class="ico"><i data-icon="zap"></i></span><div><b>Alta inmediata</b>Tu QR se genera automáticamente.</div></li>
+        <li><span class="ico"><i data-icon="clock"></i></span><div><b>Control de tiempo</b>Cada entrada y salida queda registrada.</div></li>
+        <li><span class="ico"><i data-icon="flame"></i></span><div><b>Sigue tu constancia</b>Visitas, horas totales y media por sesión.</div></li>
+      </ul>
+    </section>
+
+    <section class="auth-card card wide">
+      <h2>Crear cuenta</h2>
+      <p class="subtitle">Rellena tus datos para darte de alta como socio.</p>
+
+      <form id="registerForm" class="form" novalidate>
+        <div class="form-grid">
+          <div class="field">
+            <label for="nombre">Nombre completo</label>
+            <div class="input-wrap">
+              <i data-icon="user" class="input-icon"></i>
+              <input id="nombre" class="input" autocomplete="name" placeholder="Ana García" required>
+            </div>
+          </div>
+          <div class="field">
+            <label for="telefono">Teléfono</label>
+            <div class="input-wrap">
+              <i data-icon="phone" class="input-icon"></i>
+              <input id="telefono" class="input" type="tel" autocomplete="tel" placeholder="600 123 456">
+            </div>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="field">
+            <label for="username">Nombre de usuario</label>
+            <div class="input-wrap">
+              <i data-icon="at" class="input-icon"></i>
+              <input id="username" class="input" autocomplete="username" placeholder="ana_fit" required>
+            </div>
+          </div>
+          <div class="field">
+            <label for="email">Email</label>
+            <div class="input-wrap">
+              <i data-icon="mail" class="input-icon"></i>
+              <input id="email" class="input" type="email" autocomplete="email" placeholder="ana@correo.com" required>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <div class="field">
+            <label for="contraseña">Contraseña</label>
+            <div class="input-wrap">
+              <i data-icon="lock" class="input-icon"></i>
+              <input id="contraseña" class="input" type="password" autocomplete="new-password" placeholder="Mínimo 6 caracteres" required>
+              <button type="button" class="toggle-pass" aria-label="Mostrar contraseña"></button>
+            </div>
+            <div class="strength" id="strength" data-level="0"><i></i><i></i><i></i><i></i></div>
+          </div>
+          <div class="field">
+            <label for="confirmar">Repetir contraseña</label>
+            <div class="input-wrap">
+              <i data-icon="lock" class="input-icon"></i>
+              <input id="confirmar" class="input" type="password" autocomplete="new-password" placeholder="Repite la contraseña" required>
+              <button type="button" class="toggle-pass" aria-label="Mostrar contraseña"></button>
+            </div>
+          </div>
+        </div>
+
+        <p id="error" class="form-error" role="alert"></p>
+
+        <button type="submit" class="btn btn-primary btn-block" id="submitBtn">
+          <span class="btn-label">Crear mi cuenta</span>
+          <span class="spinner"></span>
+        </button>
+      </form>
+
+      <p class="auth-switch">¿Ya tienes cuenta? <a href="/login.html">Inicia sesión</a></p>
+    </section>
+  </main>
+
+  <script src="js/common.js"></script>
+  <script src="js/register.js"></script>
 </body>
 </html>
