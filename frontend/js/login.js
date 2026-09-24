@@ -1,37 +1,73 @@
-document.getElementById('loginForm').addEventListener('submit', async (e) => {
-  e.preventDefault();
+(() => {
+  // Si ya hay sesión abierta, ir directamente a su página
+  if (Session.token) {
+    location.replace(Session.homeUrl());
+    return;
+  }
 
-  const identifier = document.getElementById('identifier').value;
-  const password = document.getElementById('password').value;
+  const form = document.getElementById('loginForm');
+  const identifierInput = document.getElementById('identifier');
+  const passwordInput = document.getElementById('password');
+  const errorEl = document.getElementById('error');
+  const submitBtn = document.getElementById('submitBtn');
 
-  try {
-    const res = await fetch('/api/auth/login', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifier, password })
-    });
+  // Mensajes que llegan desde otras páginas
+  const params = new URLSearchParams(location.search);
+  if (params.has('logout')) toast('Has cerrado sesión correctamente', 'success');
+  if (params.has('expired')) toast('Tu sesión ha caducado, vuelve a entrar', 'error');
+  if (params.has('registered')) {
+    toast('¡Cuenta creada! Ya puedes iniciar sesión', 'success');
+    identifierInput.value = params.get('u') || '';
+    passwordInput.focus();
+  }
+  if (params.toString()) history.replaceState(null, '', location.pathname);
 
-    const data = await res.json();
+  function showError(message) {
+    errorEl.textContent = message;
+    shake(form);
+  }
 
-    if (!res.ok) {
-      document.getElementById('error').innerText = data.message;
+  [identifierInput, passwordInput].forEach((input) =>
+    input.addEventListener('input', () => {
+      input.classList.remove('invalid');
+      errorEl.textContent = '';
+    })
+  );
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const identifier = identifierInput.value.trim();
+    const password = passwordInput.value;
+
+    identifierInput.classList.toggle('invalid', !identifier);
+    passwordInput.classList.toggle('invalid', !password);
+    if (!identifier || !password) {
+      showError('Introduce tu usuario o email y tu contraseña');
       return;
     }
 
-    // Guardamos token y rol
-    localStorage.setItem('token', data.token);
-    localStorage.setItem('role', data.user.rol);
+    setLoading(submitBtn, true);
+    try {
+      const { res, data } = await apiFetch('/api/auth/login', {
+        method: 'POST',
+        body: { identifier, password },
+        auth: false,
+      });
 
-    // Redirigir
-    if (data.user.rol === 'admin'){
-        window.location.href = '/admin.html';
+      if (!res.ok || !data.success) {
+        setLoading(submitBtn, false);
+        passwordInput.classList.add('invalid');
+        showError(data.message || 'No se pudo iniciar sesión');
+        return;
+      }
 
-    } else {
-        window.location.href = '/profile.html';
+      Session.save(data.token, data.user);
+      toast(`¡Hola, ${data.user.nombre || data.user.username}!`, 'success');
+      setTimeout(() => location.replace(Session.homeUrl()), 500);
+    } catch {
+      setLoading(submitBtn, false);
+      showError('Error de conexión con el servidor');
     }
-    
-
-  } catch (err) {
-    document.getElementById('error').innerText = 'Error de conexión al servidor';
-  }
-});
+  });
+})();

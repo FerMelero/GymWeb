@@ -1,21 +1,71 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LogIn</title>
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Iniciar sesión · GymWeb</title>
+  <meta name="theme-color" content="#0a0c0f">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23c6ff34'/%3E%3Cpath d='M10 16h12M8 11v10M24 11v10M5 13v6M27 13v6' stroke='%230a0c0f' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
 </head>
-<body>
-    <form id="loginForm">
-    <p>Introduzca su nombre de usuario o email</p>
-    <input id="identifier" placeholder="EJ: correo@cl.com | user123">
-    <br>
-    <input type="password" name="password" id="password" required>
-    <button type="submit">Enviar </button>
-    </form>
-    <p id="error"></p>
-    <script src="js/login.js"></script>
-    
+<body class="auth-page">
+  <div class="bg-blobs"><span></span><span></span><span></span></div>
+  <div class="bg-grid"></div>
+
+  <main class="auth">
+    <section class="auth-hero">
+      <a class="brand" href="/login.html"><span class="brand-mark"><i data-icon="dumbbell" data-size="20"></i></span><b class="brand-name">Gym<span>Web</span></b></a>
+      <h1 class="display">
+        <span class="line"><span>Entrena.</span></span>
+        <span class="line"><span class="accent">Registra.</span></span>
+        <span class="line"><span>Supérate.</span></span>
+      </h1>
+      <p class="lead">Accede al gimnasio con tu código QR personal y lleva el control de cada uno de tus entrenamientos.</p>
+      <ul class="features">
+        <li><span class="ico"><i data-icon="qr"></i></span><div><b>Acceso con QR</b>Escanea y entra en segundos, sin tarjetas.</div></li>
+        <li><span class="ico"><i data-icon="activity"></i></span><div><b>Historial de visitas</b>Consulta cuánto tiempo entrenas cada día.</div></li>
+        <li><span class="ico"><i data-icon="shield"></i></span><div><b>Cuenta segura</b>Contraseña cifrada y sesión protegida.</div></li>
+      </ul>
+    </section>
+
+    <section class="auth-card card">
+      <h2>Bienvenido de nuevo</h2>
+      <p class="subtitle">Inicia sesión para ver tu perfil y tu código de acceso.</p>
+
+      <form id="loginForm" class="form" novalidate>
+        <div class="field">
+          <label for="identifier">Usuario o email</label>
+          <div class="input-wrap">
+            <i data-icon="user" class="input-icon"></i>
+            <input id="identifier" class="input" autocomplete="username" placeholder="usuario o correo@ejemplo.com" required autofocus>
+          </div>
+        </div>
+
+        <div class="field">
+          <label for="password">Contraseña</label>
+          <div class="input-wrap">
+            <i data-icon="lock" class="input-icon"></i>
+            <input id="password" class="input" type="password" autocomplete="current-password" placeholder="••••••••" required>
+            <button type="button" class="toggle-pass" aria-label="Mostrar contraseña"></button>
+          </div>
+        </div>
+
+        <p id="error" class="form-error" role="alert"></p>
+
+        <button type="submit" class="btn btn-primary btn-block" id="submitBtn">
+          <span class="btn-label">Iniciar sesión</span>
+          <span class="spinner"></span>
+        </button>
+      </form>
+
+      <p class="auth-switch">¿Aún no eres socio? <a href="/register.html">Crea tu cuenta</a></p>
+    </section>
+  </main>
+
+  <script src="js/common.js"></script>
+  <script src="js/login.js"></script>
 </body>
 </html>

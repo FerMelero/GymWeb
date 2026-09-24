@@ -2,44 +2,135 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Panel Admin</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Panel de administración · GymWeb</title>
+  <meta name="theme-color" content="#0a0c0f">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23c6ff34'/%3E%3Cpath d='M10 16h12M8 11v10M24 11v10M5 13v6M27 13v6' stroke='%230a0c0f' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <h1>Panel de Administración</h1>
-  <p id="mensaje"></p>
+  <header class="navbar">
+    <div class="navbar-inner">
+      <a class="brand" data-home><span class="brand-mark"><i data-icon="dumbbell" data-size="20"></i></span><b class="brand-name">Gym<span>Web</span></b></a>
+      <nav class="nav-links">
+        <a href="/admin.html" class="active"><i data-icon="grid"></i><span>Panel</span></a>
+        <a href="/scanner.html"><i data-icon="scan"></i><span>Escáner</span></a>
+        <a href="/profile.html"><i data-icon="user"></i><span>Mi perfil</span></a>
+      </nav>
+      <div class="nav-user">
+        <div class="user-chip">
+          <div class="avatar" data-user-avatar></div>
+          <div class="meta"><b data-user-name></b><small data-user-role></small></div>
+        </div>
+        <button class="btn btn-danger btn-sm" data-logout title="Cerrar sesión">
+          <i data-icon="logout" data-size="16"></i><span class="hide-sm">Cerrar sesión</span>
+        </button>
+      </div>
+    </div>
+  </header>
 
-  <h2>Usuarios</h2>
-  <table border="1" id="tablaUsuarios">
-    <thead>
-      <tr>
-        <th>Nombre</th>
-        <th>Email</th>
-        <th>Username</th>
-        <th>Rol</th>
-        <th>Activo</th>
-        <th>Creado</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+  <main class="page">
+    <div class="page-head">
+      <div>
+        <span class="eyebrow"><i data-icon="shield" data-size="14"></i>Administración</span>
+        <h1 class="display">Panel de <span class="accent">control</span></h1>
+        <p id="today"></p>
+      </div>
+      <div class="toolbar">
+        <span class="live-pill"><span class="dot live"></span><span id="updated">Conectando…</span></span>
+        <button class="btn btn-sm" id="refreshBtn"><i data-icon="refresh" data-size="16"></i><span class="hide-sm">Actualizar</span></button>
+      </div>
+    </div>
 
-  <h2>Entradas de hoy</h2>
-  <table border="1" id="tablaEntradasHoy">
-    <thead>
-      <tr>
-        <th>Usuario</th>
-        <th>Entrada</th>
-        <th>Salida</th>
-        <th>Duración</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+    <!-- Estadísticas -->
+    <div class="grid grid-4" style="margin-bottom:1.25rem">
+      <article class="card stat reveal">
+        <div class="stat-top"><span class="stat-label">Dentro ahora</span><span class="stat-icon success"><i data-icon="activity"></i></span></div>
+        <span class="stat-value" id="statInside">0</span>
+        <span class="stat-sub">socios entrenando</span>
+      </article>
+      <article class="card stat reveal">
+        <div class="stat-top"><span class="stat-label">Entradas hoy</span><span class="stat-icon"><i data-icon="login"></i></span></div>
+        <span class="stat-value" id="statToday">0</span>
+        <span class="stat-sub" id="statTodaySub">0 ya han salido</span>
+      </article>
+      <article class="card stat reveal">
+        <div class="stat-top"><span class="stat-label">Tiempo medio</span><span class="stat-icon info"><i data-icon="timer"></i></span></div>
+        <span class="stat-value" id="statAvg">—</span>
+        <span class="stat-sub">por sesión hoy</span>
+      </article>
+      <article class="card stat reveal">
+        <div class="stat-top"><span class="stat-label">Socios</span><span class="stat-icon danger"><i data-icon="users"></i></span></div>
+        <span class="stat-value" id="statUsers">0</span>
+        <span class="stat-sub" id="statUsersSub">0 activos</span>
+      </article>
+    </div>
 
-  <h2>Usuarios dentro ahora</h2>
-  <ul id="usuariosDentro"></ul>
+    <div class="grid grid-admin" style="margin-bottom:1.25rem">
+      <!-- Entradas de hoy -->
+      <section class="card reveal" style="min-width:0">
+        <div class="card-head">
+          <h3><i data-icon="calendar"></i>Entradas de hoy</h3>
+          <span class="badge badge-muted" id="todayCount">0</span>
+        </div>
+        <div class="table-wrap">
+          <table class="table">
+            <thead><tr><th>Socio</th><th>Entrada</th><th>Salida</th><th>Duración</th><th>Estado</th></tr></thead>
+            <tbody id="todayBody">
+              <tr><td colspan="5"><span class="skeleton"></span></td></tr>
+              <tr><td colspan="5"><span class="skeleton"></span></td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
 
+      <!-- Dentro ahora -->
+      <section class="card reveal">
+        <div class="card-head">
+          <h3><i data-icon="activity"></i>Dentro ahora</h3>
+          <span class="badge badge-success" id="insideBadge"><span class="dot live"></span>0</span>
+        </div>
+        <ul class="people" id="insideList">
+          <li><span class="skeleton" style="width:100%"></span></li>
+        </ul>
+      </section>
+    </div>
+
+    <!-- Usuarios -->
+    <section class="card reveal">
+      <div class="card-head">
+        <h3><i data-icon="users"></i>Socios registrados</h3>
+        <div class="toolbar">
+          <div class="input-wrap search">
+            <i data-icon="search" data-size="16" class="input-icon"></i>
+            <input class="input" id="search" placeholder="Buscar por nombre, usuario o email">
+          </div>
+          <select class="select" id="roleFilter" aria-label="Filtrar por rol">
+            <option value="">Todos los roles</option>
+            <option value="user">Socios</option>
+            <option value="admin">Administradores</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table class="table">
+          <thead><tr><th>Socio</th><th>Email</th><th>Teléfono</th><th>Rol</th><th>Estado</th><th>Alta</th></tr></thead>
+          <tbody id="usersBody">
+            <tr><td colspan="6"><span class="skeleton"></span></td></tr>
+            <tr><td colspan="6"><span class="skeleton"></span></td></tr>
+            <tr><td colspan="6"><span class="skeleton"></span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">GymWeb · Panel de administración</footer>
+
+  <script src="js/common.js"></script>
   <script src="js/admin.js"></script>
 </body>
 </html>

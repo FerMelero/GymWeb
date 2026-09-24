@@ -2,59 +2,121 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Mi Perfil</title>
-  <script src="https://cdn.jsdelivr.net/npm/qrcodejs/qrcode.min.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mi perfil · GymWeb</title>
+  <meta name="theme-color" content="#0a0c0f">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23c6ff34'/%3E%3Cpath d='M10 16h12M8 11v10M24 11v10M5 13v6M27 13v6' stroke='%230a0c0f' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
-  <h2>Mi Perfil</h2>
-  <div id="perfil">Cargando...</div>
+  <header class="navbar">
+    <div class="navbar-inner">
+      <a class="brand" data-home><span class="brand-mark"><i data-icon="dumbbell" data-size="20"></i></span><b class="brand-name">Gym<span>Web</span></b></a>
+      <nav class="nav-links">
+        <a href="/admin.html" data-admin-only><i data-icon="grid"></i><span>Panel</span></a>
+        <a href="/scanner.html" data-admin-only><i data-icon="scan"></i><span>Escáner</span></a>
+        <a href="/profile.html" class="active"><i data-icon="user"></i><span>Mi perfil</span></a>
+      </nav>
+      <div class="nav-user">
+        <div class="user-chip">
+          <div class="avatar" data-user-avatar></div>
+          <div class="meta"><b data-user-name></b><small data-user-role></small></div>
+        </div>
+        <button class="btn btn-danger btn-sm" data-logout title="Cerrar sesión">
+          <i data-icon="logout" data-size="16"></i><span class="hide-sm">Cerrar sesión</span>
+        </button>
+      </div>
+    </div>
+  </header>
 
-  <script>
-    async function cargarPerfil() {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        document.getElementById('perfil').innerText = "No estás logueado";
-        return;
-      }
+  <main class="page">
+    <div class="page-head">
+      <div>
+        <span class="eyebrow"><i data-icon="flame" data-size="14"></i>Área de socio</span>
+        <h1 class="display" id="greeting">Hola</h1>
+        <p id="greetingSub">Este es tu pase de acceso y el resumen de tu actividad.</p>
+      </div>
+      <span class="status out" id="statusPill"><span class="dot"></span><span>Cargando…</span></span>
+    </div>
 
-      try {
-        const res = await fetch('api/users/me', {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
+    <div class="grid grid-profile">
+      <!-- Columna izquierda: QR + datos -->
+      <div class="stack">
+        <section class="card qr-card reveal">
+          <span class="eyebrow" style="margin:0"><i data-icon="qr" data-size="14"></i>Tu pase de acceso</span>
+          <div>
+            <div class="qr-frame">
+              <div id="qr"></div>
+              <span class="scanline"></span>
+            </div>
+          </div>
+          <p class="muted" style="font-size:.9rem">Muestra este código en el escáner de recepción para registrar tu entrada y salida.</p>
+          <div style="margin-top:.8rem"><span class="qr-code-text" id="qrText">—</span></div>
+          <div class="qr-actions">
+            <button class="btn btn-sm" id="downloadQr"><i data-icon="download" data-size="16"></i>Descargar</button>
+            <button class="btn btn-sm" id="copyQr"><i data-icon="copy" data-size="16"></i>Copiar código</button>
+          </div>
+        </section>
 
-        const data = await res.json();
+        <section class="card reveal">
+          <div class="card-head"><h3><i data-icon="badge"></i>Mis datos</h3></div>
+          <ul class="info-list" id="infoList">
+            <li><span class="skeleton" style="width:70%"></span></li>
+            <li><span class="skeleton" style="width:55%"></span></li>
+            <li><span class="skeleton" style="width:65%"></span></li>
+          </ul>
+        </section>
+      </div>
 
-        const div = document.getElementById('perfil');
+      <!-- Columna derecha: estadísticas + historial -->
+      <div class="stack">
+        <div class="grid grid-3">
+          <article class="card stat reveal">
+            <div class="stat-top"><span class="stat-label">Visitas</span><span class="stat-icon"><i data-icon="flame"></i></span></div>
+            <span class="stat-value" id="statVisits">0</span>
+            <span class="stat-sub">entrenamientos registrados</span>
+          </article>
+          <article class="card stat reveal">
+            <div class="stat-top"><span class="stat-label">Tiempo total</span><span class="stat-icon info"><i data-icon="clock"></i></span></div>
+            <span class="stat-value" id="statTotal">0min</span>
+            <span class="stat-sub">acumulado en el gimnasio</span>
+          </article>
+          <article class="card stat reveal">
+            <div class="stat-top"><span class="stat-label">Media</span><span class="stat-icon success"><i data-icon="timer"></i></span></div>
+            <span class="stat-value" id="statAvg">0min</span>
+            <span class="stat-sub">por sesión completada</span>
+          </article>
+        </div>
 
-        if (!res.ok || !data.success) {
-          div.innerText = data.message || "Error al cargar perfil";
-          return;
-        }
+        <section class="card reveal">
+          <div class="card-head">
+            <h3><i data-icon="history"></i>Historial de accesos</h3>
+            <span class="badge badge-muted" id="historyCount">0 registros</span>
+          </div>
+          <div class="table-wrap">
+            <table class="table">
+              <thead>
+                <tr><th>Fecha</th><th>Entrada</th><th>Salida</th><th>Duración</th><th>Estado</th></tr>
+              </thead>
+              <tbody id="historyBody">
+                <tr><td colspan="5"><span class="skeleton"></span></td></tr>
+                <tr><td colspan="5"><span class="skeleton"></span></td></tr>
+                <tr><td colspan="5"><span class="skeleton"></span></td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
 
-        const user = data.user;
-        div.innerHTML = `
-          <p>Nombre: ${user.nombre}</p>
-          <p>Email: ${user.email}</p>
-          <p>Username: ${user.username}</p>
-          <div id="qr"></div>
-          <img src="${user.qr_code}" alt="QR Code" />
-        `;
+  <footer class="footer">GymWeb · Control de acceso</footer>
 
-        new QRCode(document.getElementById("qr"), {
-            text: user.qr_code,
-            width: 200,
-            height: 200
-  });
-
-      } catch (err) {
-        document.getElementById('perfil').innerText = "Error de conexión al servidor";
-      }
-    }
-
-    cargarPerfil();
-  </script>
+  <script src="js/common.js"></script>
+  <script src="js/profile.js"></script>
 </body>
 </html>
