@@ -1,0 +1,15 @@
+Se ha añadido RLS (Row Level Security), son filas que solo se tiene permiso
+de ver.
+Minúsculas en email/username
+Evita duplicados: Juan@mail.com y juan@mail.com se tratan igual. Limpia también espacios en blanco.
+entries_one_open_per_user (índice único)
+
+Un usuario solo puede tener una entrada sin salida abierta a la vez. Si intenta marcar entrada de nuevo sin haber salido, falla.
+salida_timestamp is null = solo cuenta las filas sin salida
+Si hay dos sin salida = error
+
+
+.or(...) pasa a .eq(column, ...) y el identificador se valida con regex. Eso cierra la inyección.
+DUMMY_HASH hace que el tiempo de respuesta sea el mismo exista o no el usuario, así que el oráculo por tiempo desaparece.
+Se selecciona solo lo necesario y se devuelve publicUser en lugar del usuario entero.
+Se comprueba activo y la expiración baja a 8 h
