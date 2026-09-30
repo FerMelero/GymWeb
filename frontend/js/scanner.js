@@ -1,4 +1,6 @@
 (() => {
+  if (!requireAuth('admin')) return;
+
   const $ = (id) => document.getElementById(id);
   const RESET_MS = 3500;
 
@@ -97,7 +99,7 @@
     setResult('', { ico: 'loading', title: 'Verificando…', text: 'Comprobando el código del socio.' });
 
     try {
-      const { res, data } = await apiFetch('/api/entries', { method: 'POST', body: { qr_code }, auth: false });
+      const { res, data } = await apiFetch('/api/entries', { method: 'POST', body: { qr_code } });
 
       if (!res.ok || !data.success) {
         beep('error');
