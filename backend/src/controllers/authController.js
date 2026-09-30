@@ -56,27 +56,31 @@ exports.register = async (req, res) => {
     });
 
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error("Error en register:", error);
+    res.status(500).json({ success: false, message: "Error interno del servidor" });
   }
 };
 
 // ---------------------- LOGIN ----------------------
+// regex para excluir ciertas cosas
 const EMAIL_RE = /^[^\s@,()]+@[^\s@,()]+\.[^\s@,()]+$/;
 const USERNAME_RE = /^[a-z0-9_.]{3,20}$/;
 // Hash falso para que "usuario no existe" tarde lo mismo que "contraseña incorrecta"
 const DUMMY_HASH = bcrypt.hashSync('dummy-password-no-real', saltRounds);
 
+// mejor filtramos lo que realmente necesitamos
 const publicUser = (u) => ({ id: u.id, nombre: u.nombre, username: u.username, rol: u.rol });
 
 exports.login = async (req, res) => {
   try {
-    const identifier = String(req.body.identifier || '').trim().toLowerCase();
+    const identifier = String(req.body.identifier || '').trim();
     const password = String(req.body.password || '');
 
     const column = EMAIL_RE.test(identifier) ? 'email'
                  : USERNAME_RE.test(identifier) ? 'username'
                  : null;
 
+                 // longitud máxima de 72 para no sobrecargar
     if (!column || !password || password.length > 72) {
       return res.status(401).json({ success: false, message: 'Credenciales incorrectas' });
     }
@@ -88,7 +92,7 @@ exports.login = async (req, res) => {
       .eq(column, identifier)
       .maybeSingle();
 
-    // bcrypt se ejecuta SIEMPRE (tiempo constante)
+    // se calcula un hash falso una vez, para que el tiempo de respuesta o delate
     const coincide = await bcrypt.compare(password, user?.password_hash || DUMMY_HASH);
 
     if (!user || !coincide) {
@@ -106,7 +110,7 @@ exports.login = async (req, res) => {
     );
 
     res.json({ success: true, token, user: publicUser(user) });
-
+  // error por consola, ya no devuelve info de supabase
   } catch (error) {
     console.error('Error en login:', error);
     res.status(500).json({ success: false, message: 'Error interno del servidor' });

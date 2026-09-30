@@ -1,5 +1,24 @@
 const supabase = require('../config/supabase');
-const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+
+exports.regenerateQr = async (req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('users')
+      .update({ qr_code: crypto.randomUUID() })
+      .eq('id', req.userId)
+      .select('qr_code')
+      .single();
+
+    if (error) throw error;
+
+    res.json({ success: true, qr_code: data.qr_code });
+
+  } catch (error) {
+    console.error('Error en regenerateQr:', error);
+    res.status(500).json({ success: false, message: 'Error al regenerar el QR' });
+  }
+};
 
 exports.getAllUsers = async(req, res) => {
   try {
@@ -17,10 +36,10 @@ exports.getAllUsers = async(req, res) => {
     });
     
   } catch (error) {
+    console.error('Error en getAllUsers:', error);
     res.status(500).json({
       success: false,
       message: 'Error al obtener usuarios',
-      error: error.message
     });
   }
 }
@@ -42,10 +61,10 @@ exports.getMyProfile = async(req, res) => {
             
         
     } catch (error) {
+        console.error('Error en getMyProfile:', error);
         res.status(500).json({
             success: false,
             message: 'Error al obtener perfil',
-            error: error.message
     });
         
     }

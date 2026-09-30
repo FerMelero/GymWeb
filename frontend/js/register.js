@@ -29,6 +29,7 @@
   );
 
   function validate(values) {
+    const { z } = require('zod');
     const checks = [
       ['nombre', values.nombre.length >= 2, 'Introduce tu nombre'],
       ['telefono', !values.telefono || /^[+\d][\d\s-]{6,}$/.test(values.telefono), 'El teléfono no es válido'],
