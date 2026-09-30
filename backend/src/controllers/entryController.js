@@ -13,20 +13,20 @@ exports.registerEntry = async (req, res) => {
   try {
     const { qr_code } = req.body;
 
-    // 1. Validar que llegue el qr_code
-    if (!qr_code) {
+    // 1. Validar que llegue el qr_code y tenga formato de UUID
+    if (typeof qr_code !== 'string' || !/^[0-9a-f-]{36}$/i.test(qr_code)) {
       return res.status(400).json({
         success: false,
-        message: 'El código QR es obligatorio'
+        message: 'Código QR inválido'
       });
     }
 
     // 2. Buscar el usuario por su qr_code
     const { data: user, error: userError } = await supabase
       .from('users')
-      .select('*')
+      .select('id, nombre, activo')
       .eq('qr_code', qr_code)
-      .single();
+      .maybeSingle();
 
     // Si no existe el usuario
     if (userError || !user) {
@@ -65,6 +65,13 @@ exports.registerEntry = async (req, res) => {
         .select()
         .single();
 
+      // 23505 = índice único: ya hay una entrada abierta (doble escaneo simultáneo)
+      if (insertError?.code === '23505') {
+        return res.status(409).json({
+          success: false,
+          message: 'Escaneo duplicado, inténtalo de nuevo'
+        });
+      }
       if (insertError) throw insertError;
 
       return res.status(201).json({
@@ -72,8 +79,7 @@ exports.registerEntry = async (req, res) => {
         action: 'entrada',
         message: `¡Bienvenido ${user.nombre}!`,
         user: {
-          nombre: user.nombre,
-          email: user.email
+          nombre: user.nombre
         },
         timestamp: nuevaEntrada.entrada_timestamp
       });
@@ -101,8 +107,7 @@ exports.registerEntry = async (req, res) => {
       action: 'salida',
       message: `¡Hasta luego ${user.nombre}!`,
       user: {
-        nombre: user.nombre,
-        email: user.email
+        nombre: user.nombre
       },
       entrada: entradaAbierta.entrada_timestamp,
       salida: salidaTimestamp,
@@ -114,7 +119,6 @@ exports.registerEntry = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Error al registrar entrada/salida',
-      error: error.message
     });
   }
 };
@@ -150,7 +154,6 @@ exports.getEntries = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Error al obtener entradas',
-      error: error.message
     });
   }
 };
@@ -191,7 +194,6 @@ exports.getTodayEntries = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Error al obtener entradas de hoy',
-      error: error.message
     });
   }
 };
@@ -221,7 +223,6 @@ exports.getCurrentlyInside = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: 'Error al obtener usuarios dentro',
-      error: error.message
     });
   }
 };
