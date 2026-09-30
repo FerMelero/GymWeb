@@ -2,14 +2,17 @@ const { createClient } = require('@supabase/supabase-js');
 require('dotenv').config();
 
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseKey = process.env.SUPABASE_ANON_KEY;
+const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
   console.error('❌ Error: Faltan credenciales de Supabase en .env');
   process.exit(1);
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: { persistSession: false, autoRefreshToken: false }
+  });
+
 
 console.log('✅ Supabase configurado correctamente');
 

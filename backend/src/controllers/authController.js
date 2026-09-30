@@ -61,56 +61,55 @@ exports.register = async (req, res) => {
 };
 
 // ---------------------- LOGIN ----------------------
+const EMAIL_RE = /^[^\s@,()]+@[^\s@,()]+\.[^\s@,()]+$/;
+const USERNAME_RE = /^[a-z0-9_.]{3,20}$/;
+// Hash falso para que "usuario no existe" tarde lo mismo que "contraseña incorrecta"
+const DUMMY_HASH = bcrypt.hashSync('dummy-password-no-real', saltRounds);
+
+const publicUser = (u) => ({ id: u.id, nombre: u.nombre, username: u.username, rol: u.rol });
+
 exports.login = async (req, res) => {
   try {
-    const { identifier, password } = req.body;
+    const identifier = String(req.body.identifier || '').trim().toLowerCase();
+    const password = String(req.body.password || '');
 
-    if (!identifier || !password) {
-      return res.status(400).json({
-        success: false,
-        message: 'Faltan credenciales'
-      });
+    const column = EMAIL_RE.test(identifier) ? 'email'
+                 : USERNAME_RE.test(identifier) ? 'username'
+                 : null;
+
+    if (!column || !password || password.length > 72) {
+      return res.status(401).json({ success: false, message: 'Credenciales incorrectas' });
     }
 
-
-    // Buscar por email o username
-    const { data: user, error } = await supabase
+    // .eq() escapa el valor: no hay inyección de filtros
+    const { data: user } = await supabase
       .from('users')
-      .select('*')
-      .or(`email.eq.${identifier},username.eq.${identifier}`)
-      .single();
+      .select('id, nombre, username, rol, activo, password_hash')
+      .eq(column, identifier)
+      .maybeSingle();
 
-    if (error || !user) {
-      return res.status(400).json({
-        success: false,
-        message: 'Credenciales incorrectas'
-      });
+    // bcrypt se ejecuta SIEMPRE (tiempo constante)
+    const coincide = await bcrypt.compare(password, user?.password_hash || DUMMY_HASH);
+
+    if (!user || !coincide) {
+      return res.status(401).json({ success: false, message: 'Credenciales incorrectas' });
     }
 
-    // Comparar contraseña
-    const coincide = await bcrypt.compare(password, user.password_hash);
-
-    if (!coincide) {
-      return res.status(400).json({
-        success: false,
-        message: 'Credenciales incorrectas'
-      });
+    if (!user.activo) {
+      return res.status(403).json({ success: false, message: 'Cuenta desactivada. Contacta con recepción' });
     }
 
-    // Crear token
     const token = jwt.sign(
       { id: user.id, rol: user.rol },
       process.env.JWT_SECRET,
-      { expiresIn: '7d' }
+      { algorithm: 'HS256', expiresIn: '8h' }
     );
 
-    res.json({
-      success: true,
-      token,
-      user
-    });
+    res.json({ success: true, token, user: publicUser(user) });
 
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('Error en login:', error);
+    res.status(500).json({ success: false, message: 'Error interno del servidor' });
   }
 };
+
