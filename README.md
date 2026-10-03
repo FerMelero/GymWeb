@@ -1,6 +1,3 @@
-<<<<<<< Updated upstream
-El sistema implementa un control de acceso a un gimnasio mediante autenticación JWT, roles, registro de entradas y salidas con QR, y un panel de administración en tiempo real, asegurando seguridad, trazabilidad y usabilidad multiplataforma
-=======
 # 🏋️ GymWeb
 
 Sistema de control de acceso para gimnasios. Cada socio tiene un código QR personal que se escanea en recepción para registrar su **entrada y salida**. Los socios consultan su perfil e historial, y el administrador dispone de un panel en tiempo real.
@@ -138,4 +135,3 @@ El escáner está pensado para dejarse abierto en una tablet de recepción. Para
 - Validación del registro en el servidor (con `zod`).
 - Servir `qrcodejs` y `html5-qrcode` en local en lugar de por CDN.
 - Botón para regenerar el QR en el perfil.
->>>>>>> Stashed changes
