@@ -48,7 +48,9 @@
         <td>${escapeHtml(u.telefono || '—')}</td>
         <td>${u.rol === 'admin'
           ? `<span class="badge badge-accent">${icon('shield', 12)}Admin</span>`
-          : '<span class="badge badge-muted">Socio</span>'}</td>
+          : u.rol === 'scanner'
+            ? `<span class="badge badge-info">${icon('scan', 12)}Escáner</span>`
+            : '<span class="badge badge-muted">Socio</span>'}</td>
         <td>${u.activo
           ? '<span class="badge badge-success"><span class="dot"></span>Activo</span>'
           : '<span class="badge badge-danger"><span class="dot"></span>Inactivo</span>'}</td>

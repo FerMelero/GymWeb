@@ -2,62 +2,59 @@ const supabase = require('../config/supabase');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
+const { z } = require('zod');
 const saltRounds = 10;
 
 // ---------------------- REGISTER ----------------------
+const registerSchema = z.object({
+  nombre: z.string().trim().min(2).max(60),
+  telefono: z.string().trim().regex(/^[+\d][\d\s-]{6,19}$/).optional().or(z.literal('')),
+  username: z.string().trim().toLowerCase().regex(/^[a-z0-9_.]{3,20}$/),
+  email: z.string().trim().toLowerCase().email().max(254),
+  contraseña: z.string().min(8).max(72), // bcrypt ignora a partir del byte 72
+});
+
 exports.register = async (req, res) => {
   try {
-    const { email, contraseña, nombre, telefono, username } = req.body;
-
-    // Verificar username
-    const { data: existingUser } = await supabase
-      .from('users')
-      .select('username')
-      .eq('username', username)
-      .limit(1);
-
-    if (existingUser && existingUser.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: 'El nombre de usuario ya está registrado'
-      });
+    const parsed = registerSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ success: false, message: 'Datos de registro no válidos' });
     }
-
-    // Verificar email
-    const { data: existingEmail } = await supabase
-      .from('users')
-      .select('email')
-      .eq('email', email)
-      .single();
-
-    if (existingEmail) {
-      return res.status(400).json({
-        success: false,
-        message: 'El email ya está registrado'
-      });
-    }
+    const { email, contraseña, nombre, telefono, username } = parsed.data;
 
     const password_hash = await bcrypt.hash(contraseña, saltRounds);
-    const qr_code = crypto.randomUUID();
-    const rol = "user";
 
     const { data, error } = await supabase
       .from('users')
-      .insert({ email, password_hash, nombre, telefono, username, rol, qr_code })
-      .select()
+      .insert({
+        email,
+        password_hash,
+        nombre,
+        username,
+        telefono: telefono || null,
+        rol: 'user',
+        qr_code: crypto.randomUUID(),
+      })
+      .select('id, nombre, username, rol')
       .single();
 
-    if (error) throw error;
+    if (error) {
+      // 23505 = violación de UNIQUE (email o username repetido)
+      if (error.code === '23505') {
+        return res.status(409).json({ success: false, message: 'El email o el usuario ya están registrados' });
+      }
+      throw error;
+    }
 
-    return res.json({
+    return res.status(201).json({
       success: true,
       message: 'Usuario registrado correctamente',
       user: data
     });
 
   } catch (error) {
-    console.error("Error en register:", error);
-    res.status(500).json({ success: false, message: "Error interno del servidor" });
+    console.error('Error en register:', error);
+    res.status(500).json({ success: false, message: 'Error interno del servidor' });
   }
 };
 
@@ -73,7 +70,7 @@ const publicUser = (u) => ({ id: u.id, nombre: u.nombre, username: u.username, r
 
 exports.login = async (req, res) => {
   try {
-    const identifier = String(req.body.identifier || '').trim();
+    const identifier = String(req.body.identifier || '').trim().toLowerCase();
     const password = String(req.body.password || '');
 
     const column = EMAIL_RE.test(identifier) ? 'email'
@@ -106,7 +103,7 @@ exports.login = async (req, res) => {
     const token = jwt.sign(
       { id: user.id, rol: user.rol },
       process.env.JWT_SECRET,
-      { algorithm: 'HS256', expiresIn: '8h' }
+      { algorithm: 'HS256', expiresIn: user.rol === 'scanner' ? '30d' : '8h' }
     );
 
     res.json({ success: true, token, user: publicUser(user) });

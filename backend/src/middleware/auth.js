@@ -55,5 +55,17 @@ const adminMiddleware = (req, res, next) => {
     next();
 };
 
-module.exports = { authMiddleware, adminMiddleware };
+// Escáner de recepción: lo puede usar un admin o la cuenta dedicada 'scanner'
+const scannerMiddleware = (req, res, next) => {
+    if (req.userRol !== 'admin' && req.userRol !== 'scanner') {
+        return res.status(403).json({
+            success: false,
+            message: 'Acceso denegado: se requiere rol admin o scanner'
+        });
+    }
+
+    next();
+};
+
+module.exports = { authMiddleware, adminMiddleware, scannerMiddleware };
 

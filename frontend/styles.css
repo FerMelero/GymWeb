@@ -79,6 +79,8 @@ svg { display: block; flex-shrink: 0; }
 body:not(.is-admin) [data-admin-only],
 body:not(.is-logged) [data-auth-only],
 body.is-logged [data-guest-only] { display: none !important; }
+/* Cuenta de escáner (tablet de recepción): solo logo, reloj y salir */
+body.is-scanner .nav-links { display: none !important; }
 
 .display {
   font-family: var(--display);

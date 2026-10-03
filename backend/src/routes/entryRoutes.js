@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const entryController = require('../controllers/entryController');
-const { authMiddleware, adminMiddleware } = require('../middleware/auth');
+const { authMiddleware, adminMiddleware, scannerMiddleware } = require('../middleware/auth');
 
-// Registrar entrada/salida (solo admin: el escáner requiere sesión de administrador)
-router.post('/', authMiddleware, adminMiddleware, entryController.registerEntry);
+// Registrar entrada/salida (admin o cuenta 'scanner' de la tablet de recepción)
+router.post('/', authMiddleware, scannerMiddleware, entryController.registerEntry);
 
 // Ver mi historial o todas las entradas (según rol)
 router.get('/', authMiddleware, entryController.getEntries);
