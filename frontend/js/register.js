@@ -29,13 +29,12 @@
   );
 
   function validate(values) {
-    const { z } = require('zod');
     const checks = [
       ['nombre', values.nombre.length >= 2, 'Introduce tu nombre'],
       ['telefono', !values.telefono || /^[+\d][\d\s-]{6,}$/.test(values.telefono), 'El teléfono no es válido'],
       ['username', /^[a-zA-Z0-9_.]{3,20}$/.test(values.username), 'El usuario debe tener 3-20 caracteres (letras, números, _ o .)'],
       ['email', /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email), 'Introduce un email válido'],
-      ['contraseña', values.contraseña.length >= 6, 'La contraseña debe tener al menos 6 caracteres'],
+      ['contraseña', values.contraseña.length >= 8 && values.contraseña.length <= 72, 'La contraseña debe tener entre 8 y 72 caracteres'],
       ['confirmar', values.confirmar === values.contraseña, 'Las contraseñas no coinciden'],
     ];
     const failed = checks.filter(([, ok]) => !ok);
@@ -49,7 +48,7 @@
     const values = {
       nombre: $('nombre').value.trim(),
       telefono: $('telefono').value.trim(),
-      username: $('username').value.trim(),
+      username: $('username').value.trim().toLowerCase(),
       email: $('email').value.trim().toLowerCase(),
       contraseña: $('contraseña').value,
       confirmar: $('confirmar').value,

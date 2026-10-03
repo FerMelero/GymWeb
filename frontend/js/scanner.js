@@ -1,5 +1,5 @@
 (() => {
-  if (!requireAuth('admin')) return;
+  if (!requireAuth('scanner')) return;
 
   const $ = (id) => document.getElementById(id);
   const RESET_MS = 3500;

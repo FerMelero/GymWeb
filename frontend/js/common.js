@@ -61,6 +61,7 @@ const Session = {
   get nombre() { return localStorage.getItem('nombre') || ''; },
   get username() { return localStorage.getItem('username') || ''; },
   get isAdmin() { return this.role === 'admin'; },
+  get isScanner() { return this.role === 'scanner'; },
   save(token, user) {
     localStorage.setItem('token', token);
     localStorage.setItem('role', user.rol);
@@ -70,13 +71,23 @@ const Session = {
   clear() {
     ['token', 'role', 'nombre', 'username'].forEach((k) => localStorage.removeItem(k));
   },
-  homeUrl() { return this.isAdmin ? '/admin.html' : '/profile.html'; },
+  homeUrl() { return this.isAdmin ? '/admin.html' : this.isScanner ? '/scanner.html' : '/profile.html'; },
 };
 
 // Redirige al login si no hay sesión (o al perfil si se exige admin)
 function requireAuth(role) {
   if (!Session.token) {
     location.replace('/login.html');
+    return false;
+  }
+  // 'scanner' = admin o cuenta de escáner; 'admin' = solo admin
+  if (role === 'scanner' && !(Session.isAdmin || Session.isScanner)) {
+    location.replace('/profile.html');
+    return false;
+  }
+  // La cuenta de escáner solo tiene su pantalla; el resto de páginas la devuelven allí
+  if (role !== 'scanner' && Session.isScanner) {
+    location.replace('/scanner.html');
     return false;
   }
   if (role === 'admin' && !Session.isAdmin) {
@@ -210,9 +221,10 @@ function shake(el) {
   const logged = Boolean(Session.token);
   document.body.classList.toggle('is-logged', logged);
   document.body.classList.toggle('is-admin', logged && Session.isAdmin);
+  document.body.classList.toggle('is-scanner', logged && Session.isScanner);
 
   document.querySelectorAll('[data-user-name]').forEach((el) => { el.textContent = Session.nombre || Session.username; });
-  document.querySelectorAll('[data-user-role]').forEach((el) => { el.textContent = Session.isAdmin ? 'Administrador' : 'Socio'; });
+  document.querySelectorAll('[data-user-role]').forEach((el) => { el.textContent = Session.isAdmin ? 'Administrador' : Session.isScanner ? 'Escáner' : 'Socio'; });
   document.querySelectorAll('[data-user-avatar]').forEach((el) => { el.textContent = initials(Session.nombre || Session.username); });
   document.querySelectorAll('[data-home]').forEach((el) => { el.href = logged ? Session.homeUrl() : '/login.html'; });
   document.querySelectorAll('[data-logout]').forEach((el) => el.addEventListener('click', confirmLogout));
