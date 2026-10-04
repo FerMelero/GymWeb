@@ -36,6 +36,13 @@ const ICONS = {
   hash: '<path d="M4 9h16"/><path d="M4 15h16"/><path d="M10 3 8 21"/><path d="m16 3-2 18"/>',
   zap: '<path d="M13 2 3 14h9l-1 8 10-12h-9z"/>',
   timer: '<path d="M10 2h4"/><path d="M12 14l3-3"/><circle cx="12" cy="14" r="8"/>',
+  edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
+  pin: '<path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
+  receipt: '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/>',
+  key: '<circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/>',
+  save: '<path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8"/><path d="M7 3v5h8"/>',
+  building: '<rect x="4" y="2" width="16" height="20" rx="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01M12 6h.01M16 6h.01M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14h.01"/>',
+  info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
   badge: '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="M15 8h2"/><path d="M15 12h2"/><path d="M7 16h6"/>',
 };
 
@@ -65,6 +72,11 @@ const Session = {
   save(token, user) {
     localStorage.setItem('token', token);
     localStorage.setItem('role', user.rol);
+    localStorage.setItem('nombre', user.nombre || '');
+    localStorage.setItem('username', user.username || '');
+  },
+  // Actualiza los datos visibles tras editar el perfil (el token no cambia)
+  updateUser(user) {
     localStorage.setItem('nombre', user.nombre || '');
     localStorage.setItem('username', user.username || '');
   },
@@ -214,6 +226,250 @@ function shake(el) {
   el.classList.add('shake');
 }
 
+// Refresca el nombre y el avatar de la barra superior
+function refreshUserChip() {
+  document.querySelectorAll('[data-user-name]').forEach((el) => { el.textContent = Session.nombre || Session.username; });
+  document.querySelectorAll('[data-user-avatar]').forEach((el) => { el.textContent = initials(Session.nombre || Session.username); });
+}
+
+// ---------- Reglas de validación de formularios (el servidor repite todas) ----------
+const RULES = {
+  nombre: (v) => (v.length < 2 ? 'El nombre debe tener al menos 2 caracteres' : ''),
+  username: (v) => (/^[a-zA-Z0-9_.]{3,20}$/.test(v) ? '' : 'Usuario de 3-20 caracteres (letras, números, _ o .)'),
+  email: (v) => (/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) ? '' : 'Introduce un email válido'),
+  telefono: (v) => (/^[+\d][\d\s-]{6,19}$/.test(v) ? '' : 'El teléfono no es válido'),
+  nif_cif: (v) => (/^[A-Za-z0-9\s-]{8,15}$/.test(v) ? '' : 'El NIF/CIF no es válido (ej. 12345678Z o A58818501)'),
+};
+
+// ---------- Formulario en modal ----------
+// config: { title, subtitle, icon, notice, submitLabel,
+//   sections: [{ title, icon, note, fields: [{ name, label, icon, type, value, placeholder, autocomplete,
+//     maxlength, required, hint, span, validate(value, values), showWhen(values) }] }],
+//   onSubmit(values, changed) -> { ok, message, errors } }
+// Los campos con showWhen son auxiliares (p. ej. contraseña actual): solo se piden cuando hacen falta
+// y no cuentan como "cambio".
+function openFormModal(config) {
+  const fields = config.sections.flatMap((s) => s.fields);
+  const initial = Object.fromEntries(fields.map((f) => [f.name, f.type === 'checkbox' ? false : String(f.value ?? '')]));
+  let sending = false;
+  let closeTimer = null;
+  let saved = false;
+
+  const fieldHtml = (f) => {
+    const id = `mf_${f.name}`;
+    const req = f.required ? ' <span class="req" aria-hidden="true">*</span>' : '';
+    const hint = f.hint ? `<span class="hint">${escapeHtml(f.hint)}</span>` : '';
+    const err = `<span class="field-error" id="mfe_${f.name}" role="alert">${icon('alert', 14)}<span></span></span>`;
+    const span = f.span ? ' span-2' : '';
+    const hidden = f.showWhen ? ' hidden' : '';
+    if (f.type === 'checkbox') {
+      return `<div class="field${span}${hidden ? ' hidden' : ''}" data-field="${f.name}">
+        <label class="check" for="${id}"><input type="checkbox" id="${id}" name="${f.name}"><span>${escapeHtml(f.label)}</span></label>${err}</div>`;
+    }
+    const isPass = f.type === 'password';
+    const ico = f.icon ? icon(f.icon, 18).replace('<svg ', '<svg class="input-icon" ') : '';
+    return `<div class="field${span}${hidden ? ' hidden' : ''}" data-field="${f.name}">
+      <label for="${id}">${escapeHtml(f.label)}${req}</label>
+      <div class="input-wrap">${ico}
+        <input class="input${f.icon ? '' : ' no-icon'}" id="${id}" name="${f.name}" type="${isPass ? 'password' : (f.type || 'text')}"
+          value="${escapeHtml(initial[f.name])}" placeholder="${escapeHtml(f.placeholder || '')}"
+          autocomplete="${escapeHtml(f.autocomplete || 'off')}" ${f.maxlength ? `maxlength="${f.maxlength}"` : ''}>
+        ${isPass ? `<button type="button" class="toggle-pass" aria-label="Mostrar contraseña">${icon('eye', 18)}</button>` : ''}
+      </div>${hint}${err}</div>`;
+  };
+
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.innerHTML = `
+    <form class="modal modal-form card" role="dialog" aria-modal="true" aria-labelledby="mfTitle" novalidate>
+      <div class="mf-head">
+        <span class="mf-ico">${icon(config.icon || 'edit', 22)}</span>
+        <div class="mf-titles"><h3 id="mfTitle">${escapeHtml(config.title)}</h3>
+          ${config.subtitle ? `<span class="mf-sub">${escapeHtml(config.subtitle)}</span>` : ''}</div>
+        <button type="button" class="btn btn-ghost btn-icon btn-sm mf-close" data-close aria-label="Cerrar">${icon('x', 18)}</button>
+      </div>
+      <div class="mf-body">
+        ${config.notice ? `<div class="mf-notice">${icon('info', 16)}<span>${escapeHtml(config.notice)}</span></div>` : ''}
+        ${config.sections.map((s) => `
+          <section class="mf-section">
+            <div class="mf-section-title">${icon(s.icon || 'user', 15)}${escapeHtml(s.title)}</div>
+            ${s.note ? `<div class="mf-section-note">${escapeHtml(s.note)}</div>` : ''}
+            <div class="form-grid">${s.fields.map(fieldHtml).join('')}</div>
+          </section>`).join('')}
+      </div>
+      <div class="mf-foot">
+        <div class="mf-banner" id="mfBanner" role="status" aria-live="polite"></div>
+        <div class="mf-actions">
+          <span class="dirty-note" id="mfDirty">Sin cambios</span>
+          <button type="button" class="btn" data-close id="mfCancel">Cancelar</button>
+          <button type="submit" class="btn btn-primary" id="mfSubmit" disabled>
+            <span class="btn-label">${escapeHtml(config.submitLabel || 'Guardar cambios')}</span><span class="spinner"></span>
+          </button>
+        </div>
+      </div>
+    </form>`;
+
+  const form = backdrop.querySelector('form');
+  const banner = backdrop.querySelector('#mfBanner');
+  const dirtyNote = backdrop.querySelector('#mfDirty');
+  const submitBtn = backdrop.querySelector('#mfSubmit');
+  const cancelBtn = backdrop.querySelector('#mfCancel');
+  const wrapOf = (name) => form.querySelector(`[data-field="${name}"]`);
+  const inputOf = (name) => form.elements[name];
+
+  const readValues = () => Object.fromEntries(fields.map((f) => {
+    const el = inputOf(f.name);
+    return [f.name, f.type === 'checkbox' ? el.checked : (f.type === 'password' ? el.value : el.value.trim())];
+  }));
+  const isVisible = (f, values) => !f.showWhen || f.showWhen(values);
+  const changedNames = (values) => fields
+    .filter((f) => !f.showWhen && values[f.name] !== initial[f.name]).map((f) => f.name);
+
+  function setBanner(kind, html) {
+    banner.className = `mf-banner ${kind || ''}${kind ? ' show' : ''}`;
+    banner.innerHTML = html || '';
+  }
+
+  function setFieldError(name, message) {
+    const wrap = wrapOf(name);
+    if (!wrap) return false;
+    wrap.classList.toggle('has-error', Boolean(message));
+    wrap.querySelector('.field-error span').textContent = message || '';
+    const input = inputOf(name);
+    if (input && input.type !== 'checkbox') input.classList.toggle('invalid', Boolean(message));
+    return true;
+  }
+
+  function validateField(f, values) {
+    if (!isVisible(f, values)) return '';
+    const v = values[f.name];
+    if (f.type === 'checkbox') return f.required && !v ? 'Debes confirmarlo para continuar' : '';
+    if (f.required && !v) return `${f.label}: campo obligatorio`;
+    if (v === '' || !f.validate) return '';
+    return f.validate(v, values) || '';
+  }
+
+  function refresh() {
+    const values = readValues();
+    fields.forEach((f) => {
+      if (f.showWhen) wrapOf(f.name).classList.toggle('hidden', !f.showWhen(values));
+    });
+    // Una sección cuyos campos están todos ocultos (solo auxiliares) tampoco se muestra
+    form.querySelectorAll('.mf-section').forEach((sec, i) => {
+      const sf = config.sections[i].fields;
+      sec.classList.toggle('hidden', sf.every((f) => f.showWhen) && !sf.some((f) => f.showWhen(values)));
+    });
+    const n = changedNames(values).length;
+    const dirty = n > 0;
+    dirtyNote.textContent = saved ? 'Guardado' : dirty ? `${n} ${n === 1 ? 'cambio' : 'cambios'} sin guardar` : 'Sin cambios';
+    dirtyNote.classList.toggle('dirty', dirty && !saved);
+    submitBtn.disabled = !dirty || sending || saved;
+  }
+
+  function setSending(on) {
+    sending = on;
+    setLoading(submitBtn, on);
+    form.querySelectorAll('input, [data-close]').forEach((el) => { el.disabled = on; });
+    form.querySelectorAll('.toggle-pass').forEach((el) => { el.disabled = on; });
+    refresh();
+  }
+
+  function close() {
+    if (sending) return;
+    clearTimeout(closeTimer);
+    document.removeEventListener('keydown', onKey);
+    backdrop.remove();
+  }
+  function onKey(e) { if (e.key === 'Escape') close(); }
+
+  form.addEventListener('input', (e) => {
+    if (saved) return;
+    if (e.target.name && wrapOf(e.target.name)) setFieldError(e.target.name, '');
+    if (banner.classList.contains('error')) setBanner();
+    refresh();
+  });
+  form.addEventListener('change', refresh);
+  form.addEventListener('focusout', (e) => {
+    const name = e.target && e.target.name;
+    const f = fields.find((x) => x.name === name);
+    if (!f || saved || sending) return;
+    const values = readValues();
+    if (values[name] !== initial[name] || wrapOf(name).classList.contains('has-error')) setFieldError(name, validateField(f, values));
+  });
+  form.querySelectorAll('.toggle-pass').forEach((btn) => btn.addEventListener('click', () => {
+    const input = btn.parentElement.querySelector('input');
+    const show = input.type === 'password';
+    input.type = show ? 'text' : 'password';
+    btn.innerHTML = icon(show ? 'eyeOff' : 'eye', 18);
+    btn.setAttribute('aria-label', show ? 'Ocultar contraseña' : 'Mostrar contraseña');
+  }));
+  form.querySelectorAll('[data-close]').forEach((el) => el.addEventListener('click', close));
+  backdrop.addEventListener('mousedown', (e) => { if (e.target === backdrop) close(); });
+
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    if (sending || saved) return;
+
+    // 1) Validación en el navegador
+    const values = readValues();
+    const problems = fields.map((f) => [f.name, validateField(f, values)]);
+    problems.forEach(([name, msg]) => setFieldError(name, msg));
+    const bad = problems.filter(([, msg]) => msg);
+    if (bad.length) {
+      setBanner('error', `${icon('alert', 18)}<span>Revisa ${bad.length === 1 ? 'el campo marcado' : `los ${bad.length} campos marcados`} antes de guardar.</span>`);
+      shake(form);
+      inputOf(bad[0][0]).focus();
+      return;
+    }
+
+    // 2) Envío
+    setBanner('info', '<span class="spinner"></span><span>Guardando cambios…</span>');
+    setSending(true);
+    let result;
+    try {
+      const visible = Object.fromEntries(fields.filter((f) => isVisible(f, values)).map((f) => [f.name, values[f.name]]));
+      result = await config.onSubmit(visible, changedNames(values));
+    } catch {
+      result = { ok: false, network: true };
+    }
+    setSending(false);
+
+    // 3) Resultado
+    if (result.ok) {
+      saved = true;
+      fields.forEach((f) => { initial[f.name] = f.type === 'checkbox' ? false : (f.showWhen ? '' : values[f.name]); });
+      form.querySelectorAll('input').forEach((el) => { el.disabled = true; });
+      setBanner('success', `${icon('check', 18)}<span>${escapeHtml(result.message || 'Cambios guardados correctamente')}</span>`);
+      toast(result.message || 'Cambios guardados correctamente', 'success');
+      cancelBtn.disabled = false;
+      cancelBtn.textContent = 'Cerrar';
+      submitBtn.querySelector('.btn-label').textContent = 'Guardado';
+      refresh();
+      closeTimer = setTimeout(close, 1800);
+      return;
+    }
+
+    const message = result.network
+      ? 'No se pudo conectar con el servidor. Comprueba tu conexión e inténtalo de nuevo.'
+      : (result.message || 'No se pudieron guardar los cambios.');
+    let firstWithError = null;
+    Object.entries(result.errors || {}).forEach(([name, msg]) => {
+      if (setFieldError(name, msg) && !firstWithError) firstWithError = name;
+    });
+    setBanner('error', `${icon('alert', 18)}<span>${escapeHtml(message)}</span>`);
+    toast(message, 'error', 5000);
+    shake(form);
+    if (firstWithError) inputOf(firstWithError).focus();
+    refresh();
+  });
+
+  document.addEventListener('keydown', onKey);
+  document.body.appendChild(backdrop);
+  refresh();
+  const first = form.querySelector('input:not([type="checkbox"])');
+  if (first) first.focus();
+}
+
 // ---------- Inicialización común ----------
 (function initCommon() {
   renderIcons();
@@ -223,9 +479,8 @@ function shake(el) {
   document.body.classList.toggle('is-admin', logged && Session.isAdmin);
   document.body.classList.toggle('is-scanner', logged && Session.isScanner);
 
-  document.querySelectorAll('[data-user-name]').forEach((el) => { el.textContent = Session.nombre || Session.username; });
+  refreshUserChip();
   document.querySelectorAll('[data-user-role]').forEach((el) => { el.textContent = Session.isAdmin ? 'Administrador' : Session.isScanner ? 'Escáner' : 'Socio'; });
-  document.querySelectorAll('[data-user-avatar]').forEach((el) => { el.textContent = initials(Session.nombre || Session.username); });
   document.querySelectorAll('[data-home]').forEach((el) => { el.href = logged ? Session.homeUrl() : '/login.html'; });
   document.querySelectorAll('[data-logout]').forEach((el) => el.addEventListener('click', confirmLogout));
 

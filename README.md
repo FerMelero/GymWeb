@@ -8,10 +8,12 @@ Sistema de control de acceso para gimnasios. Cada socio tiene un código QR pers
 - Registro e inicio de sesión (con email o nombre de usuario).
 - Perfil con sus datos, estadísticas de visitas e historial de entrenamientos.
 - Código QR personal: visualizable, descargable y copiable.
+- **Edición de toda su información**: nombre, usuario, email, teléfono, dirección y datos de facturación, más cambio de contraseña.
 
 **Administrador**
 - Panel con usuarios registrados, entradas del día y quién está dentro ahora (se actualiza cada 15 s).
 - Escáner de QR por cámara, o introduciendo el código a mano, con aviso sonoro y visual.
+- **Corrección de datos de los socios**: teléfono, email, dirección y nombre, y datos de facturación (nombre fiscal, NIF/CIF y dirección de cobro). Solo esos campos; el rol, el estado, el usuario y la contraseña no se pueden tocar desde el panel.
 - La primera lectura de un QR registra la **entrada**; la siguiente, la **salida** (con duración de la sesión).
 
 ## Stack
@@ -50,7 +52,11 @@ GymWeb/
 | POST | `/api/auth/register` | Público | Crear cuenta |
 | POST | `/api/auth/login` | Público | Iniciar sesión, devuelve JWT |
 | GET | `/api/users/me` | Usuario | Mi perfil |
+| PATCH | `/api/users/me` | Usuario | Editar mis datos (email/usuario piden la contraseña actual) |
+| PATCH | `/api/users/me/password` | Usuario | Cambiar mi contraseña |
 | POST | `/api/users/me/qr` | Usuario | Regenerar mi QR |
+| GET | `/api/users/:id` | Admin | Ver un usuario con sus datos de facturación |
+| PATCH | `/api/users/:id` | Admin | Corregir contacto y facturación de un usuario |
 | GET | `/api/users` | Admin | Listar usuarios |
 | POST | `/api/entries` | Admin o Scanner | Registrar entrada/salida por QR |
 | GET | `/api/entries` | Usuario | Mi historial (el admin ve todos) |
@@ -58,6 +64,29 @@ GymWeb/
 | GET | `/api/entries/inside` | Admin | Quién está dentro ahora |
 
 Las rutas protegidas requieren la cabecera `Authorization: Bearer <token>`.
+
+## Edición de datos: qué se puede cambiar y por qué
+
+| Campo | Usuario (los suyos) | Admin (de cualquiera) |
+|---|---|---|
+| Nombre, teléfono, dirección postal | ✅ | ✅ |
+| Email | ✅ con contraseña actual | ✅ |
+| Nombre fiscal, NIF/CIF, dirección de cobro | ✅ | ✅ solo si confirma que lo pidió el cliente |
+| Usuario (login) | ✅ con contraseña actual | ❌ |
+| Contraseña | ✅ con contraseña actual | ❌ |
+| Rol, estado activo | ❌ | ❌ |
+
+**Por qué así**
+- **Lista blanca estricta:** cada ruta valida el cuerpo con `zod` en modo estricto y rechaza cualquier campo que no esté previsto. Mandar `{"rol":"admin"}` a `PATCH /api/users/me` devuelve 400, así que nadie puede subirse de privilegios editando su perfil.
+- **El admin no toca accesos:** puede corregir erratas y actualizar datos comerciales, pero no cambiar el usuario, el rol, el estado ni la contraseña de otra persona. Eso evita que una cuenta de admin comprometida sirva para apropiarse de cuentas ajenas.
+- **Facturación bajo petición del cliente:** si el admin modifica nombre fiscal, NIF/CIF o dirección de cobro, el formulario exige marcar *"el cliente ha solicitado este cambio"* y el servidor lo comprueba también.
+- **Email y usuario piden contraseña:** son los datos con los que se inicia sesión; sin esa comprobación, una sesión abierta olvidada bastaría para quedarse con la cuenta.
+- **NIF/CIF validado de verdad:** se comprueba el formato y el dígito de control de DNI, NIE y CIF, no solo que "parezca" uno.
+- **Solo se guardan los cambios reales:** si no cambia nada, no se escribe en la BD ni se audita.
+- **Auditoría:** cada edición queda en la tabla `audit_log` (quién, a quién, qué campos y cuándo; no se guardan los valores para no duplicar datos personales).
+- **Rate limit:** 20 intentos cada 15 min en las rutas de edición, porque piden la contraseña actual y no deben servir para adivinarla.
+
+**Formularios:** abren en una ventana modal con el mismo estilo del resto de la web. Marcan el campo con el error y explican qué pasa, muestran el progreso ("Guardando cambios…"), confirman el resultado (verde si se guardó, rojo si falló, con el motivo) y distinguen un fallo de validación de uno de conexión. El botón de guardar solo se activa si hay cambios.
 
 ## Escáner de recepción (tablet o segundo dispositivo)
 
@@ -105,6 +134,8 @@ El escáner está pensado para dejarse abierto en una tablet de recepción. Para
 
 3. **Preparar la base de datos en Supabase**
 
+   Ejecuta [backend/sql/edicion_perfil.sql](backend/sql/edicion_perfil.sql) (columnas de dirección y facturación y tabla `audit_log`), además de lo siguiente.
+
    Tablas `users` (`id`, `email`, `password_hash`, `nombre`, `telefono`, `username`, `rol`, `activo`, `qr_code`, `created_at`) y `entries` (`id`, `user_id`, `entrada_timestamp`, `salida_timestamp`), y después:
 ```sql
    alter table users add constraint users_email_key    unique (email);
@@ -132,6 +163,14 @@ El escáner está pensado para dejarse abierto en una tablet de recepción. Para
 
 ## Estado y próximos pasos
 
-- Validación del registro en el servidor (con `zod`).
+- Invalidar las sesiones abiertas al cambiar la contraseña (hoy un token anterior sigue valiendo hasta que caduca).
 - Servir `qrcodejs` y `html5-qrcode` en local en lugar de por CDN.
+<<<<<<< HEAD
 - Botón para regenerar el QR en el perfil.
+<<<<<<< Updated upstream
+=======
+- Verificar por correo los cambios de email.
+>>>>>>> Stashed changes
+=======
+- Botón para regenerar el QR en el perfil.
+>>>>>>> ba64f394e1eea99dbb68036a39142962420c85cd
