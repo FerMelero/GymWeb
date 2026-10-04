@@ -119,37 +119,37 @@ El escáner está pensado para dejarse abierto en una tablet de recepción. Para
 ## Puesta en marcha
 
 1. **Instalar dependencias**
-   ```bash
+```bash
    cd backend
    npm install
-   ```
+```
 
 2. **Crear `backend/.env`**
-   ```env
+```env
    PORT=5000
    SUPABASE_URL=https://TU_PROYECTO.supabase.co
    SUPABASE_SERVICE_ROLE_KEY=tu_service_role_key   # solo en el servidor, nunca en el frontend
    JWT_SECRET=una_cadena_larga_y_aleatoria_de_32+_caracteres
-   ```
+```
 
 3. **Preparar la base de datos en Supabase**
 
    Ejecuta [backend/sql/edicion_perfil.sql](backend/sql/edicion_perfil.sql) (columnas de dirección y facturación y tabla `audit_log`), además de lo siguiente.
 
    Tablas `users` (`id`, `email`, `password_hash`, `nombre`, `telefono`, `username`, `rol`, `activo`, `qr_code`, `created_at`) y `entries` (`id`, `user_id`, `entrada_timestamp`, `salida_timestamp`), y después:
-   ```sql
+```sql
    alter table users add constraint users_email_key    unique (email);
    alter table users add constraint users_username_key unique (username);
    alter table users add constraint users_qr_code_key  unique (qr_code);
    create unique index entries_one_open_per_user on entries (user_id) where salida_timestamp is null;
    alter table users   enable row level security;
    alter table entries enable row level security;
-   ```
+```
 
 4. **Arrancar**
-   ```bash
+```bash
    npm start          # o: npm run dev
-   ```
+```
    Abre `http://localhost:5000/login.html`. Para crear un administrador, cambia el campo `rol` a `admin` de un usuario directamente en Supabase.
 
 ## Seguridad
@@ -165,8 +165,12 @@ El escáner está pensado para dejarse abierto en una tablet de recepción. Para
 
 - Invalidar las sesiones abiertas al cambiar la contraseña (hoy un token anterior sigue valiendo hasta que caduca).
 - Servir `qrcodejs` y `html5-qrcode` en local en lugar de por CDN.
+<<<<<<< HEAD
 - Botón para regenerar el QR en el perfil.
 <<<<<<< Updated upstream
 =======
 - Verificar por correo los cambios de email.
 >>>>>>> Stashed changes
+=======
+- Botón para regenerar el QR en el perfil.
+>>>>>>> ba64f394e1eea99dbb68036a39142962420c85cd
