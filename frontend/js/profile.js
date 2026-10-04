@@ -22,10 +22,16 @@
       ['at', 'Usuario', `@${u.username}`],
       ['mail', 'Email', u.email],
       ['phone', 'Teléfono', u.telefono || 'No indicado'],
+      ['pin', 'Dirección', u.direccion || 'No indicada'],
       ['calendar', 'Socio desde', u.created_at ? fmtDate(u.created_at) : '—'],
+      ['sep', 'Facturación'],
+      ['building', 'Nombre fiscal', u.nombre_fiscal || 'No indicado'],
+      ['badge', 'NIF/CIF', u.nif_cif || 'No indicado'],
+      ['receipt', 'Dirección de cobro', u.direccion_cobro || 'No indicada'],
     ];
-    $('infoList').innerHTML = rows.map(([ico, label, value]) => `
-      <li>
+    $('infoList').innerHTML = rows.map(([ico, label, value]) => ico === 'sep'
+      ? `<li class="info-sep">${label}</li>`
+      : `<li>
         <span class="ico">${icon(ico, 17)}</span>
         <div class="meta"><small>${label}</small><b>${escapeHtml(value)}</b></div>
       </li>`).join('');
@@ -112,6 +118,96 @@
       toast('Error de conexión con el servidor', 'error');
     }
   }
+
+  // ---------- Editar mis datos ----------
+  function openEditProfile() {
+    const loginChanged = (v) =>
+      v.email.toLowerCase() !== String(user.email || '').toLowerCase() ||
+      v.username.toLowerCase() !== String(user.username || '').toLowerCase();
+
+    openFormModal({
+      title: 'Editar mis datos',
+      subtitle: 'Puedes modificar toda tu información. Solo se guardan los campos que cambies.',
+      icon: 'edit',
+      sections: [
+        {
+          title: 'Datos personales', icon: 'user',
+          fields: [
+            { name: 'nombre', label: 'Nombre completo', icon: 'user', value: user.nombre, required: true, maxlength: 60, autocomplete: 'name', validate: RULES.nombre },
+            { name: 'username', label: 'Usuario', icon: 'at', value: user.username, required: true, maxlength: 20, autocomplete: 'username', validate: RULES.username },
+            { name: 'email', label: 'Email', icon: 'mail', type: 'email', value: user.email, required: true, maxlength: 254, autocomplete: 'email', validate: RULES.email },
+            { name: 'telefono', label: 'Teléfono', icon: 'phone', type: 'tel', value: user.telefono, maxlength: 20, autocomplete: 'tel', validate: RULES.telefono },
+            { name: 'direccion', label: 'Dirección postal', icon: 'pin', value: user.direccion, maxlength: 200, autocomplete: 'street-address', span: true, placeholder: 'Calle, número, código postal y ciudad' },
+          ],
+        },
+        {
+          title: 'Datos de facturación', icon: 'receipt',
+          note: 'Opcional. Se usan para emitir tus facturas.',
+          fields: [
+            { name: 'nombre_fiscal', label: 'Nombre fiscal', icon: 'building', value: user.nombre_fiscal, maxlength: 120, autocomplete: 'organization', placeholder: 'Nombre o razón social' },
+            { name: 'nif_cif', label: 'NIF / CIF', icon: 'badge', value: user.nif_cif, maxlength: 15, placeholder: '12345678Z', validate: RULES.nif_cif },
+            { name: 'direccion_cobro', label: 'Dirección de cobro', icon: 'pin', value: user.direccion_cobro, maxlength: 200, span: true, placeholder: 'Dirección donde se envían las facturas' },
+          ],
+        },
+        {
+          title: 'Confirmación', icon: 'lock',
+          fields: [
+            { name: 'contraseñaActual', label: 'Contraseña actual', type: 'password', icon: 'lock', required: true, span: true, autocomplete: 'current-password',
+              hint: 'Necesaria para cambiar el email o el usuario, porque son tus datos de acceso.', showWhen: loginChanged },
+          ],
+        },
+      ],
+      onSubmit: async (values, changed) => {
+        const body = {};
+        changed.forEach((k) => { body[k] = values[k]; });
+        if (values.contraseñaActual) body.contraseñaActual = values.contraseñaActual;
+
+        const { res, data } = await apiFetch('/api/users/me', { method: 'PATCH', body });
+        if (res.ok && data.success) {
+          user = data.user;
+          Session.updateUser(user);
+          renderUser(user);
+          refreshUserChip();
+          return { ok: true, message: data.message };
+        }
+        return { ok: false, message: data.message, errors: data.errors };
+      },
+    });
+  }
+
+  // ---------- Cambiar contraseña ----------
+  function openPasswordModal() {
+    openFormModal({
+      title: 'Cambiar contraseña',
+      subtitle: 'Por seguridad, necesitamos tu contraseña actual.',
+      icon: 'key',
+      submitLabel: 'Cambiar contraseña',
+      sections: [{
+        title: 'Nueva contraseña', icon: 'lock',
+        fields: [
+          { name: 'contraseñaActual', label: 'Contraseña actual', type: 'password', icon: 'lock', required: true, span: true, autocomplete: 'current-password' },
+          {
+            name: 'contraseñaNueva', label: 'Nueva contraseña', type: 'password', icon: 'lock', required: true, autocomplete: 'new-password', hint: 'Entre 8 y 72 caracteres.',
+            validate: (v, vals) => (v.length < 8 ? 'Mínimo 8 caracteres' : v.length > 72 ? 'Máximo 72 caracteres' : v === vals.contraseñaActual ? 'Debe ser distinta de la actual' : ''),
+          },
+          {
+            name: 'confirmar', label: 'Repite la nueva contraseña', type: 'password', icon: 'lock', required: true, autocomplete: 'new-password',
+            validate: (v, vals) => (v !== vals.contraseñaNueva ? 'Las contraseñas no coinciden' : ''),
+          },
+        ],
+      }],
+      onSubmit: async (values) => {
+        const { res, data } = await apiFetch('/api/users/me/password', {
+          method: 'PATCH',
+          body: { contraseñaActual: values.contraseñaActual, contraseñaNueva: values.contraseñaNueva },
+        });
+        return { ok: res.ok && data.success, message: data.message, errors: data.errors };
+      },
+    });
+  }
+
+  $('editProfile').addEventListener('click', () => { if (user) openEditProfile(); });
+  $('editPassword').addEventListener('click', openPasswordModal);
 
   $('downloadQr').addEventListener('click', () => {
     const canvas = $('qr').querySelector('canvas');

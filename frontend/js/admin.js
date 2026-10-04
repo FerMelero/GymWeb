@@ -37,7 +37,7 @@
     );
 
     if (!list.length) {
-      $('usersBody').innerHTML = emptyRow(6, 'search', 'Sin resultados', users.length ? 'Prueba con otra búsqueda o filtro.' : 'Todavía no hay socios registrados.');
+      $('usersBody').innerHTML = emptyRow(7, 'search', 'Sin resultados', users.length ? 'Prueba con otra búsqueda o filtro.' : 'Todavía no hay socios registrados.');
       return;
     }
 
@@ -55,8 +55,79 @@
           ? '<span class="badge badge-success"><span class="dot"></span>Activo</span>'
           : '<span class="badge badge-danger"><span class="dot"></span>Inactivo</span>'}</td>
         <td>${u.created_at ? fmtDate(u.created_at) : '—'}</td>
+        <td class="col-actions">
+          <button class="btn btn-sm" data-edit="${escapeHtml(u.id)}" aria-label="Editar a ${escapeHtml(u.nombre)}">
+            <span class="btn-label">${icon('edit', 14)}Editar</span><span class="spinner"></span>
+          </button>
+        </td>
       </tr>`).join('');
   }
+
+  // ---------- Editar un usuario (solo contacto y facturación) ----------
+  const BILLING = ['nombre_fiscal', 'nif_cif', 'direccion_cobro'];
+
+  function openEditUser(u) {
+    const billingChanged = (v) => BILLING.some((k) => v[k] !== String(u[k] ?? ''));
+
+    openFormModal({
+      title: `Editar a ${u.nombre}`,
+      subtitle: `@${u.username} · ${u.rol === 'admin' ? 'Administrador' : u.rol === 'scanner' ? 'Escáner' : 'Socio'}`,
+      icon: 'edit',
+      notice: 'Solo puedes corregir datos de contacto y facturación. El usuario, el rol, el estado y la contraseña no se pueden modificar desde aquí.',
+      sections: [
+        {
+          title: 'Datos de contacto', icon: 'user',
+          note: 'Corrige erratas o actualiza los datos que hayan cambiado.',
+          fields: [
+            { name: 'nombre', label: 'Nombre', icon: 'user', value: u.nombre, required: true, maxlength: 60, validate: RULES.nombre },
+            { name: 'email', label: 'Email', icon: 'mail', type: 'email', value: u.email, required: true, maxlength: 254, validate: RULES.email },
+            { name: 'telefono', label: 'Teléfono', icon: 'phone', type: 'tel', value: u.telefono, maxlength: 20, validate: RULES.telefono },
+            { name: 'direccion', label: 'Dirección postal', icon: 'pin', value: u.direccion, maxlength: 200, span: true, placeholder: 'Calle, número, código postal y ciudad' },
+          ],
+        },
+        {
+          title: 'Datos de facturación', icon: 'receipt',
+          note: 'Modifícalos solo si el cliente lo ha pedido o para actualizar información comercial válida.',
+          fields: [
+            { name: 'nombre_fiscal', label: 'Nombre fiscal', icon: 'building', value: u.nombre_fiscal, maxlength: 120, placeholder: 'Nombre o razón social' },
+            { name: 'nif_cif', label: 'NIF / CIF', icon: 'badge', value: u.nif_cif, maxlength: 15, placeholder: '12345678Z', validate: RULES.nif_cif },
+            { name: 'direccion_cobro', label: 'Dirección de cobro', icon: 'pin', value: u.direccion_cobro, maxlength: 200, span: true },
+            { name: 'solicitadoPorCliente', type: 'checkbox', required: true, span: true, showWhen: billingChanged,
+              label: 'Confirmo que el cliente ha solicitado este cambio en sus datos de facturación' },
+          ],
+        },
+      ],
+      onSubmit: async (values, changed) => {
+        const body = {};
+        changed.forEach((k) => { body[k] = values[k]; });
+        if (values.solicitadoPorCliente) body.solicitadoPorCliente = true;
+
+        const { res, data } = await apiFetch(`/api/users/${encodeURIComponent(u.id)}`, { method: 'PATCH', body });
+        if (res.ok && data.success) {
+          const row = users.find((x) => x.id === u.id);
+          if (row) Object.assign(row, data.user);
+          renderUsers();
+          return { ok: true, message: data.message };
+        }
+        return { ok: false, message: data.message, errors: data.errors };
+      },
+    });
+  }
+
+  $('usersBody').addEventListener('click', async (e) => {
+    const btn = e.target.closest('[data-edit]');
+    if (!btn) return;
+    setLoading(btn, true);
+    try {
+      const { res, data } = await apiFetch(`/api/users/${encodeURIComponent(btn.dataset.edit)}`);
+      if (res.ok && data.success) openEditUser(data.user);
+      else toast(data.message || 'No se pudo cargar el usuario', 'error');
+    } catch {
+      toast('Error de conexión con el servidor', 'error');
+    } finally {
+      setLoading(btn, false);
+    }
+  });
 
   // ---------- Entradas de hoy ----------
   function renderToday(data) {
@@ -140,7 +211,7 @@
         $('statUsersSub').textContent = `${users.filter((x) => x.activo).length} activos`;
         renderUsers();
       } else {
-        $('usersBody').innerHTML = emptyRow(6, 'alert', 'Error', escapeHtml(u.data.message || 'No se pudieron cargar los usuarios'));
+        $('usersBody').innerHTML = emptyRow(7, 'alert', 'Error', escapeHtml(u.data.message || 'No se pudieron cargar los usuarios'));
       }
 
       if (t.data.success) renderToday(t.data);

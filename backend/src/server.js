@@ -52,8 +52,19 @@ const apiLimiter = rateLimit({
   message: { success: false, message: 'Demasiadas peticiones, espera un momento' },
 });
 
+// Cambios de perfil y contraseña (piden la contraseña actual): evita fuerza bruta sobre ella
+const profileLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { success: false, message: 'Demasiados intentos, espera unos minutos' },
+});
+
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
+app.patch('/api/users/me', profileLimiter);
+app.patch('/api/users/me/password', profileLimiter);
 app.use('/api', apiLimiter);
 
 // Importar rutas
@@ -61,20 +72,18 @@ const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const entryRoutes = require('./routes/entryRoutes');
 
-// Ruta principal
+// Página de inicio: el login (si ya hay sesión, login.js redirige a la página de su rol)
+const frontendDir = path.join(__dirname, '../../frontend');
 app.get('/', (req, res) => {
-  res.json({
-    message: '🏋️ API del Gimnasio',
-    version: '1.0.0',
-    status: 'OK'
-  });
+  res.sendFile(path.join(frontendDir, 'login.html'));
 });
 
 // Usar las rutas
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/entries', entryRoutes);
-app.use(express.static(path.join(__dirname, '../../frontend')));
+// extensions: permite /login, /admin, /scanner... sin escribir .html
+app.use(express.static(frontendDir, { extensions: ['html'] }));
 
 // Manejador de errores genérico (JSON mal formado, etc.)
 app.use((err, req, res, next) => {
