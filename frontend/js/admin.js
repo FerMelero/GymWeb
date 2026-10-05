@@ -201,7 +201,7 @@
       ]);
 
       if ([u, t, ins].some((r) => r.res.status === 403)) {
-        location.replace('/profile.html');
+        location.replace('/403');
         return;
       }
 

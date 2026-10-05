@@ -94,7 +94,7 @@ function requireAuth(role) {
   }
   // 'scanner' = admin o cuenta de escáner; 'admin' = solo admin
   if (role === 'scanner' && !(Session.isAdmin || Session.isScanner)) {
-    location.replace('/profile.html');
+    location.replace('/403');
     return false;
   }
   // La cuenta de escáner solo tiene su pantalla; el resto de páginas la devuelven allí
@@ -103,7 +103,7 @@ function requireAuth(role) {
     return false;
   }
   if (role === 'admin' && !Session.isAdmin) {
-    location.replace('/profile.html');
+    location.replace('/403');
     return false;
   }
   return true;
