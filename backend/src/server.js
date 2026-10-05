@@ -82,8 +82,21 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/entries', entryRoutes);
+
+// 403 con su código HTTP real (la página estática por sí sola respondería 200)
+app.get(['/403', '/403.html'], (req, res) => res.status(403).sendFile(path.join(frontendDir, '403.html')));
+
 // extensions: permite /login, /admin, /scanner... sin escribir .html
 app.use(express.static(frontendDir, { extensions: ['html'] }));
+
+// 404: JSON para la API y página para el navegador
+app.use('/api', (req, res) => res.status(404).json({ success: false, message: 'Ruta no encontrada' }));
+app.use((req, res) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') {
+    return res.status(404).json({ success: false, message: 'Ruta no encontrada' });
+  }
+  res.status(404).sendFile(path.join(frontendDir, '404.html'));
+});
 
 // Manejador de errores genérico (JSON mal formado, etc.)
 app.use((err, req, res, next) => {
