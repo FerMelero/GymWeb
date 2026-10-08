@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auditoría · GymWeb</title>
+  <meta name="theme-color" content="#0a0c0f">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23c6ff34'/%3E%3Cpath d='M10 16h12M8 11v10M24 11v10M5 13v6M27 13v6' stroke='%230a0c0f' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="navbar">
+    <div class="navbar-inner">
+      <a class="brand" data-home><span class="brand-mark"><i data-icon="dumbbell" data-size="20"></i></span><b class="brand-name">Gym<span>Web</span></b></a>
+      <nav class="nav-links">
+        <a href="/admin.html"><i data-icon="grid"></i><span>Panel</span></a>
+        <a href="/audit.html" class="active"><i data-icon="history"></i><span>Auditoría</span></a>
+        <a href="/scanner.html"><i data-icon="scan"></i><span>Escáner</span></a>
+        <a href="/profile.html"><i data-icon="user"></i><span>Mi perfil</span></a>
+      </nav>
+      <div class="nav-user">
+        <div class="user-chip">
+          <div class="avatar" data-user-avatar></div>
+          <div class="meta"><b data-user-name></b><small data-user-role></small></div>
+        </div>
+        <button class="btn btn-danger btn-sm" data-logout title="Cerrar sesión">
+          <i data-icon="logout" data-size="16"></i><span class="hide-sm">Cerrar sesión</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+    <div class="page-head">
+      <div>
+        <span class="eyebrow"><i data-icon="shield" data-size="14"></i>Administración</span>
+        <h1 class="display">Registro de <span class="accent">auditoría</span></h1>
+        <p>Quién ha hecho qué sobre las cuentas y cuándo. Solo se guardan los campos afectados, no sus valores.</p>
+      </div>
+      <div class="toolbar">
+        <button class="btn btn-sm" id="refreshBtn"><i data-icon="refresh" data-size="16"></i><span class="hide-sm">Actualizar</span></button>
+      </div>
+    </div>
+
+    <section class="card reveal">
+      <div class="card-head">
+        <h3><i data-icon="history"></i>Actividad</h3>
+        <span class="badge badge-muted" id="totalBadge">0 registros</span>
+      </div>
+
+      <form class="audit-filters" id="filters" autocomplete="off">
+        <div class="field">
+          <label for="action">Acción</label>
+          <select class="select" id="action">
+            <option value="">Todas</option>
+            <option value="self_update">Edición de perfil propio</option>
+            <option value="password_change">Cambio de contraseña</option>
+            <option value="admin_update">Corrección de datos (admin)</option>
+            <option value="admin_update_billing">Cambio de facturación (admin)</option>
+            <option value="admin_deactivate_user">Cuenta desactivada</option>
+            <option value="admin_activate_user">Cuenta reactivada</option>
+            <option value="admin_delete_user">Cuenta eliminada</option>
+          </select>
+        </div>
+        <div class="field">
+          <label for="usuario">Usuario</label>
+          <div class="input-wrap search">
+            <i data-icon="search" data-size="16" class="input-icon"></i>
+            <input class="input" id="usuario" placeholder="Nombre de usuario" maxlength="20">
+          </div>
+        </div>
+        <div class="field">
+          <label for="desde">Desde</label>
+          <input class="input no-icon" type="date" id="desde">
+        </div>
+        <div class="field">
+          <label for="hasta">Hasta</label>
+          <input class="input no-icon" type="date" id="hasta">
+        </div>
+        <button type="button" class="btn btn-sm" id="clearBtn"><i data-icon="x" data-size="16"></i>Limpiar</button>
+      </form>
+
+      <div class="table-wrap" id="tableWrap">
+        <table class="table">
+          <thead><tr><th>Fecha</th><th>Acción</th><th>Realizada por</th><th>Cuenta afectada</th><th>Detalle</th></tr></thead>
+          <tbody id="auditBody">
+            <tr><td colspan="5"><span class="skeleton"></span></td></tr>
+            <tr><td colspan="5"><span class="skeleton"></span></td></tr>
+            <tr><td colspan="5"><span class="skeleton"></span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="pager">
+        <span class="muted" id="pagerInfo">—</span>
+        <div class="pager-btns">
+          <button class="btn btn-sm" id="prevBtn" disabled>Anterior</button>
+          <button class="btn btn-sm" id="nextBtn" disabled>Siguiente</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">GymWeb · Panel de administración</footer>
+
+  <script src="js/common.js"></script>
+  <script src="js/audit.js"></script>
+</body>
+</html>

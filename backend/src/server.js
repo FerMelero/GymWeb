@@ -16,12 +16,11 @@ app.disable('x-powered-by');
 app.set('trust proxy', 1); // detrás de nginx/Caddy; necesario para limitar por IP real
 
 // Cabeceras de seguridad.
-// TODO: al servir qrcode/html5-qrcode en local (paso 7), quitar los CDN de scriptSrc.
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", 'https://cdn.jsdelivr.net', 'https://unpkg.com'],
+      scriptSrc: ["'self'"],
       styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
       fontSrc: ["'self'", 'https://fonts.gstatic.com'],
       imgSrc: ["'self'", 'data:', 'blob:'],
@@ -61,16 +60,28 @@ const profileLimiter = rateLimit({
   message: { success: false, message: 'Demasiados intentos, espera unos minutos' },
 });
 
+// Acciones destructivas del admin (cambiar estado, eliminar)
+const adminActionLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 60,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { success: false, message: 'Demasiadas acciones seguidas, espera unos minutos' },
+});
+
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 app.patch('/api/users/me', profileLimiter);
 app.patch('/api/users/me/password', profileLimiter);
+app.patch('/api/users/:id/status', adminActionLimiter);
+app.delete('/api/users/:id', adminActionLimiter);
 app.use('/api', apiLimiter);
 
 // Importar rutas
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const entryRoutes = require('./routes/entryRoutes');
+const auditRoutes = require('./routes/auditRoutes');
 
 // Página de inicio: el login (si ya hay sesión, login.js redirige a la página de su rol)
 const frontendDir = path.join(__dirname, '../../frontend');
@@ -82,6 +93,7 @@ app.get('/', (req, res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/entries', entryRoutes);
+app.use('/api/audit', auditRoutes);
 
 // 403 con su código HTTP real (la página estática por sí sola respondería 200)
 app.get(['/403', '/403.html'], (req, res) => res.status(403).sendFile(path.join(frontendDir, '403.html')));

@@ -67,6 +67,14 @@ const adminSchema = z.strictObject({
   solicitadoPorCliente: z.boolean(),
 }).partial();
 
+const statusSchema = z.strictObject({
+  activo: z.boolean({ error: 'Estado no válido' }),
+});
+
+const deleteSchema = z.strictObject({
+  confirmar: z.string({ error: 'Escribe el nombre de usuario para confirmar' }).max(64),
+});
+
 const passwordSchema = z.strictObject({
   contraseñaActual: passwordField('La contraseña').min(1, 'Introduce tu contraseña actual'),
   contraseñaNueva: passwordField('La contraseña').min(8, 'La nueva contraseña debe tener al menos 8 caracteres'),
@@ -368,5 +376,133 @@ exports.updateUserByAdmin = async (req, res) => {
   } catch (error) {
     console.error('Error en updateUserByAdmin:', error);
     fail(res, 500, 'No se pudieron guardar los cambios. Inténtalo de nuevo.');
+  }
+};
+
+// ---------------------- Admin: activar / desactivar una cuenta ----------------------
+exports.setUserStatus = async (req, res) => {
+  try {
+    const parsed = statusSchema.safeParse(req.body);
+    if (!parsed.success) {
+      const { errors, message } = zodErrors(parsed.error);
+      return fail(res, 400, message, errors);
+    }
+    const { activo } = parsed.data;
+
+    if (String(req.params.id) === String(req.userId)) {
+      return fail(res, 400, 'No puedes cambiar el estado de tu propia cuenta');
+    }
+
+    const { data: target, error: findError } = await supabase
+      .from('users')
+      .select(PROFILE_COLUMNS)
+      .eq('id', req.params.id)
+      .maybeSingle();
+    if (findError) throw findError;
+    if (!target) return fail(res, 404, 'Usuario no encontrado');
+
+    // Las cuentas de admin se gestionan a mano en Supabase: evita bloqueos entre admins
+    if (target.rol === 'admin') {
+      return fail(res, 403, 'Las cuentas de administrador no se pueden modificar desde el panel');
+    }
+
+    if (Boolean(target.activo) === activo) {
+      return res.json({
+        success: true,
+        changed: false,
+        message: `La cuenta ya estaba ${activo ? 'activa' : 'desactivada'}`,
+        user: target,
+      });
+    }
+
+    const { data: user, error } = await supabase
+      .from('users')
+      .update({ activo })
+      .eq('id', target.id)
+      .select(PROFILE_COLUMNS)
+      .single();
+    if (error) throw error;
+
+    // Si se desactiva a alguien que está dentro, se cierra su entrada: ya no podría fichar la salida
+    let closed = 0;
+    if (!activo) {
+      const { data: open, error: closeError } = await supabase
+        .from('entries')
+        .update({ salida_timestamp: new Date().toISOString() })
+        .eq('user_id', target.id)
+        .is('salida_timestamp', null)
+        .select('id');
+      if (closeError) console.error('No se pudieron cerrar las entradas abiertas:', closeError);
+      else closed = open.length;
+    }
+
+    await audit(
+      req.userId,
+      target.id,
+      activo ? 'admin_activate_user' : 'admin_deactivate_user',
+      { activo, ...(closed ? { entradas_cerradas: closed } : {}) }
+    );
+
+    res.json({
+      success: true,
+      changed: true,
+      message: activo
+        ? `Cuenta de @${user.username} reactivada`
+        : `Cuenta de @${user.username} desactivada${closed ? ' y su entrada abierta se ha cerrado' : ''}`,
+      user,
+    });
+  } catch (error) {
+    console.error('Error en setUserStatus:', error);
+    fail(res, 500, 'No se pudo cambiar el estado. Inténtalo de nuevo.');
+  }
+};
+
+// ---------------------- Admin: eliminar una cuenta ----------------------
+exports.deleteUser = async (req, res) => {
+  try {
+    const parsed = deleteSchema.safeParse(req.body);
+    if (!parsed.success) {
+      const { errors, message } = zodErrors(parsed.error);
+      return fail(res, 400, message, errors);
+    }
+
+    if (String(req.params.id) === String(req.userId)) {
+      return fail(res, 400, 'No puedes eliminar tu propia cuenta');
+    }
+
+    const { data: target, error: findError } = await supabase
+      .from('users')
+      .select('id, rol, username')
+      .eq('id', req.params.id)
+      .maybeSingle();
+    if (findError) throw findError;
+    if (!target) return fail(res, 404, 'Usuario no encontrado');
+
+    if (target.rol === 'admin') {
+      return fail(res, 403, 'Las cuentas de administrador no se pueden eliminar desde el panel');
+    }
+
+    // Confirmación explícita: hay que escribir el usuario exacto
+    const typed = parsed.data.confirmar.trim().replace(/^@/, '').toLowerCase();
+    if (typed !== String(target.username).toLowerCase()) {
+      return fail(res, 400, 'El nombre de usuario no coincide', {
+        confirmar: 'No coincide con el nombre de usuario de la cuenta',
+      });
+    }
+
+    // Borrado + historial + auditoría en una sola transacción (ver sql/baja_usuarios.sql).
+    // En la auditoría solo queda el usuario y el rol, no más datos personales.
+    const { data: removed, error } = await supabase.rpc('delete_user_cascade', {
+      uid: String(target.id),
+      actor: String(req.userId),
+      snapshot: { username: target.username, rol: target.rol },
+    });
+    if (error) throw error;
+    if (!removed) return fail(res, 404, 'Usuario no encontrado');
+
+    res.json({ success: true, message: `Cuenta de @${target.username} eliminada junto con su historial` });
+  } catch (error) {
+    console.error('Error en deleteUser:', error);
+    fail(res, 500, 'No se pudo eliminar la cuenta. Inténtalo de nuevo.');
   }
 };

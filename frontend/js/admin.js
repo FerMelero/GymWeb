@@ -55,11 +55,19 @@
           ? '<span class="badge badge-success"><span class="dot"></span>Activo</span>'
           : '<span class="badge badge-danger"><span class="dot"></span>Inactivo</span>'}</td>
         <td>${u.created_at ? fmtDate(u.created_at) : '—'}</td>
-        <td class="col-actions">
+        <td class="col-actions"><div class="row-actions">
           <button class="btn btn-sm" data-edit="${escapeHtml(u.id)}" aria-label="Editar a ${escapeHtml(u.nombre)}">
             <span class="btn-label">${icon('edit', 14)}Editar</span><span class="spinner"></span>
           </button>
-        </td>
+          ${u.rol === 'admin' ? '' : `
+          <button class="btn btn-sm btn-icon ${u.activo ? 'is-danger' : ''}" data-status="${escapeHtml(u.id)}"
+            title="${u.activo ? 'Desactivar cuenta' : 'Reactivar cuenta'}" aria-label="${u.activo ? 'Desactivar' : 'Reactivar'} a ${escapeHtml(u.nombre)}">
+            ${icon(u.activo ? 'power' : 'check', 16)}
+          </button>
+          <button class="btn btn-sm btn-icon is-danger" data-delete="${escapeHtml(u.id)}" title="Eliminar cuenta" aria-label="Eliminar a ${escapeHtml(u.nombre)}">
+            ${icon('trash', 16)}
+          </button>`}
+        </div></td>
       </tr>`).join('');
   }
 
@@ -114,7 +122,74 @@
     });
   }
 
+  // ---------- Activar / desactivar ----------
+  function openStatusModal(u) {
+    const turnOff = Boolean(u.activo);
+    openFormModal({
+      title: turnOff ? `Desactivar a ${u.nombre}` : `Reactivar a ${u.nombre}`,
+      subtitle: `@${u.username}`,
+      icon: turnOff ? 'power' : 'check',
+      danger: turnOff,
+      alwaysEnabled: true,
+      notice: turnOff
+        ? 'No podrá iniciar sesión ni usar su código QR para entrar. Si ahora está dentro del gimnasio, su entrada se cerrará. Podrás reactivar la cuenta cuando quieras.'
+        : 'Podrá volver a iniciar sesión y usar su código QR para entrar.',
+      submitLabel: turnOff ? 'Desactivar cuenta' : 'Reactivar cuenta',
+      sections: [],
+      onSubmit: async () => {
+        const { res, data } = await apiFetch(`/api/users/${encodeURIComponent(u.id)}/status`, { method: 'PATCH', body: { activo: !turnOff } });
+        if (res.ok && data.success) {
+          const row = users.find((x) => String(x.id) === String(u.id));
+          if (row && data.user) Object.assign(row, data.user);
+          renderUsers();
+          load();
+          return { ok: true, message: data.message };
+        }
+        return { ok: false, message: data.message, errors: data.errors };
+      },
+    });
+  }
+
+  // ---------- Eliminar ----------
+  function openDeleteModal(u) {
+    openFormModal({
+      title: `Eliminar a ${u.nombre}`,
+      subtitle: `@${u.username}`,
+      icon: 'trash',
+      danger: true,
+      notice: 'Se borrará la cuenta y todo su historial de accesos. Esta acción no se puede deshacer. Si solo quieres impedirle el acceso, desactívala en su lugar.',
+      submitLabel: 'Eliminar definitivamente',
+      sections: [{
+        title: 'Confirmación', icon: 'alert',
+        fields: [{
+          name: 'confirmar', label: `Escribe ${u.username} para confirmar`, icon: 'at', required: true, span: true, maxlength: 64,
+          placeholder: u.username,
+          validate: (v) => (v.replace(/^@/, '').toLowerCase() === String(u.username).toLowerCase() ? '' : 'No coincide con el nombre de usuario'),
+        }],
+      }],
+      onSubmit: async (values) => {
+        const { res, data } = await apiFetch(`/api/users/${encodeURIComponent(u.id)}`, { method: 'DELETE', body: { confirmar: values.confirmar } });
+        if (res.ok && data.success) {
+          users = users.filter((x) => String(x.id) !== String(u.id));
+          renderUsers();
+          load();
+          return { ok: true, message: data.message };
+        }
+        return { ok: false, message: data.message, errors: data.errors };
+      },
+    });
+  }
+
   $('usersBody').addEventListener('click', async (e) => {
+    const act = e.target.closest('[data-status], [data-delete]');
+    if (act) {
+      const isStatus = act.hasAttribute('data-status');
+      const id = isStatus ? act.dataset.status : act.dataset.delete;
+      const u = users.find((x) => String(x.id) === String(id));
+      if (u) (isStatus ? openStatusModal : openDeleteModal)(u);
+      return;
+    }
+
     const btn = e.target.closest('[data-edit]');
     if (!btn) return;
     setLoading(btn, true);

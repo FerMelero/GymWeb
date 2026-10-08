@@ -13,6 +13,7 @@ Sistema de control de acceso para gimnasios. Cada socio tiene un código QR pers
 **Administrador**
 - Panel con usuarios registrados, entradas del día y quién está dentro ahora (se actualiza cada 15 s).
 - Escáner de QR por cámara, o introduciendo el código a mano, con aviso sonoro y visual.
+- **Auditoría:** pantalla con todas las acciones sobre cuentas (quién, a quién, qué y cuándo), con filtros y paginación.
 - **Corrección de datos de los socios**: teléfono, email, dirección y nombre, y datos de facturación (nombre fiscal, NIF/CIF y dirección de cobro). Solo esos campos; el rol, el estado, el usuario y la contraseña no se pueden tocar desde el panel.
 - La primera lectura de un QR registra la **entrada**; la siguiente, la **salida** (con duración de la sesión).
 
@@ -41,6 +42,7 @@ GymWeb/
     ├── login.html · register.html
     ├── profile.html           # Vista del socio
     ├── admin.html             # Panel de administración
+    ├── audit.html             # Registro de auditoría (admin)
     ├── scanner.html           # Escáner de QR (admin o scanner)
     └── js/ · styles.css
 ```
@@ -57,6 +59,9 @@ GymWeb/
 | POST | `/api/users/me/qr` | Usuario | Regenerar mi QR |
 | GET | `/api/users/:id` | Admin | Ver un usuario con sus datos de facturación |
 | PATCH | `/api/users/:id` | Admin | Corregir contacto y facturación de un usuario |
+| PATCH | `/api/users/:id/status` | Admin | Activar o desactivar una cuenta |
+| DELETE | `/api/users/:id` | Admin | Eliminar una cuenta y su historial |
+| GET | `/api/audit` | Admin | Consultar el registro de auditoría (paginado, con filtros) |
 | GET | `/api/users` | Admin | Listar usuarios |
 | POST | `/api/entries` | Admin o Scanner | Registrar entrada/salida por QR |
 | GET | `/api/entries` | Usuario | Mi historial (el admin ve todos) |
@@ -85,6 +90,33 @@ Las rutas protegidas requieren la cabecera `Authorization: Bearer <token>`.
 - **Solo se guardan los cambios reales:** si no cambia nada, no se escribe en la BD ni se audita.
 - **Auditoría:** cada edición queda en la tabla `audit_log` (quién, a quién, qué campos y cuándo; no se guardan los valores para no duplicar datos personales).
 - **Rate limit:** 20 intentos cada 15 min en las rutas de edición, porque piden la contraseña actual y no deben servir para adivinarla.
+
+### Desactivar y eliminar cuentas (admin)
+
+Desde la tabla de socios, cada fila tiene un botón para **desactivar/reactivar** y otro para **eliminar**. Ambos piden confirmación en una ventana y quedan registrados en `audit_log`.
+
+| Acción | Qué hace | Auditoría (`action`) |
+|---|---|---|
+| Desactivar | La cuenta no puede iniciar sesión ni fichar; sus sesiones abiertas dejan de valer al instante. Si estaba dentro del gimnasio, su entrada se cierra | `admin_deactivate_user` |
+| Reactivar | Vuelve a poder entrar | `admin_activate_user` |
+| Eliminar | Borra la cuenta y todo su historial de accesos | `admin_delete_user` |
+
+**Por qué así**
+- **Desactivar antes que eliminar:** es reversible y conserva el historial. Eliminar es la opción irreversible, por eso la ventana pide escribir el nombre de usuario exacto (y el servidor lo vuelve a comprobar).
+- **Cerrar la entrada al desactivar:** una cuenta desactivada ya no puede escanear su salida; sin este paso aparecería como "dentro" para siempre en el panel.
+- **Un admin no puede actuar sobre cuentas de administrador, ni sobre la suya:** evita quedarse sin acceso y que una cuenta de admin comprometida pueda bloquear a las demás. Las cuentas admin se gestionan a mano en Supabase.
+- **Borrado atómico:** la cuenta, su historial y el registro de auditoría se escriben en una única transacción (función `delete_user_cascade`, ver [backend/sql/baja_usuarios.sql](backend/sql/baja_usuarios.sql)). Si algo falla, no se borra nada a medias. Solo el backend puede ejecutarla.
+- **Auditoría sin datos personales:** al eliminar solo se guarda el usuario y el rol, no el resto de datos de la persona.
+- **Rate limit:** 60 acciones cada 15 min.
+
+### Pantalla de auditoría
+
+En `/audit.html` (solo admin) se consulta el registro de `audit_log`. Cada fila muestra la fecha, el tipo de acción, quién la hizo, a qué cuenta afectó y un resumen de lo que cambió.
+
+- **Filtros:** por tipo de acción, por nombre de usuario (busca como autor o como cuenta afectada) y por rango de fechas. Combinables, con paginación de 25 en 25.
+- **Cuentas eliminadas:** el registro conserva su nombre de usuario, así que la fila sigue siendo legible ("Cuenta eliminada (@usuario)"). Al buscar por usuario no aparecen las acciones de cuentas que ya no existen.
+- **Qué se guarda y qué no:** solo los nombres de los campos modificados, nunca sus valores, para no duplicar datos personales en la auditoría.
+- **Seguridad:** la ruta valida todos los filtros (el usuario solo admite letras, números, `_` y `.`), solo responde a administradores y es de solo lectura; el registro no se puede modificar ni borrar desde la web.
 
 **Formularios:** abren en una ventana modal con el mismo estilo del resto de la web. Marcan el campo con el error y explican qué pasa, muestran el progreso ("Guardando cambios…"), confirman el resultado (verde si se guardó, rojo si falló, con el motivo) y distinguen un fallo de validación de uno de conexión. El botón de guardar solo se activa si hay cambios.
 
@@ -134,7 +166,7 @@ El escáner está pensado para dejarse abierto en una tablet de recepción. Para
 
 3. **Preparar la base de datos en Supabase**
 
-   Ejecuta [backend/sql/edicion_perfil.sql](backend/sql/edicion_perfil.sql) (columnas de dirección y facturación y tabla `audit_log`), además de lo siguiente.
+   Ejecuta [backend/sql/edicion_perfil.sql](backend/sql/edicion_perfil.sql) (columnas de dirección y facturación y tabla `audit_log`) y [backend/sql/baja_usuarios.sql](backend/sql/baja_usuarios.sql) (función para eliminar cuentas), además de lo siguiente.
 
    Tablas `users` (`id`, `email`, `password_hash`, `nombre`, `telefono`, `username`, `rol`, `activo`, `qr_code`, `created_at`) y `entries` (`id`, `user_id`, `entrada_timestamp`, `salida_timestamp`), y después:
 ```sql
@@ -163,14 +195,55 @@ El escáner está pensado para dejarse abierto en una tablet de recepción. Para
 
 ## Estado y próximos pasos
 
-- Invalidar las sesiones abiertas al cambiar la contraseña (hoy un token anterior sigue valiendo hasta que caduca).
-- Servir `qrcodejs` y `html5-qrcode` en local en lugar de por CDN.
-<<<<<<< HEAD
-- Botón para regenerar el QR en el perfil.
-<<<<<<< Updated upstream
-=======
-- Verificar por correo los cambios de email.
->>>>>>> Stashed changes
-=======
-- Botón para regenerar el QR en el perfil.
->>>>>>> ba64f394e1eea99dbb68036a39142962420c85cd
+### ✅ Hecho
+- Registro, login, roles (`user` / `admin` / `scanner`) y escáner de recepción con QR.
+- Perfil del socio con edición de todos sus datos, datos de facturación y cambio de contraseña.
+- Panel de admin: corrección de datos de contacto y facturación, desactivar/reactivar y eliminar cuentas.
+- Auditoría de las acciones del admin y de los cambios de perfil (tabla `audit_log`), con pantalla de consulta, filtros y paginación.
+- Seguridad base: validación en servidor, `helmet`, límite de intentos, RLS activado en Supabase, `node_modules` fuera de git.
+- Librerías de QR (`qrcodejs` y `html5-qrcode`) servidas desde `frontend/vendor`, sin CDN. La CSP solo permite scripts propios (`'self'`).
+- Páginas 403 y 404.
+
+### 🔜 Siguiente
+
+**1. Correo electrónico** (requiere elegir un servicio de envío, por ejemplo Resend, SendGrid o SMTP propio, y guardar su clave en `.env`)
+- [ ] Recuperar la contraseña con un enlace por email ("He olvidado mi contraseña"). Hoy un socio que la pierde se queda sin acceso y el admin no puede ayudarle.
+- [ ] Verificar por correo los cambios de email (hoy solo se exige la contraseña actual).
+- [ ] Al cambiar la contraseña, invalidar las sesiones abiertas (hoy un token anterior sigue valiendo hasta que caduca, 8 h).
+
+**2. Alta de usuarios desde el panel**
+- [ ] Que el admin pueda crear un socio (para recepción, sin que tenga que registrarse él).
+- [ ] Crear las cuentas `scanner` de las tablets desde el panel, en lugar de cambiar el rol a mano en Supabase.
+- [ ] Decidir cómo recibe el socio su acceso: contraseña temporal o enlace de activación por email (depende del punto 1).
+
+**3. Mejoras de la auditoría** (la pantalla básica ya está hecha)
+- [ ] Exportar el registro a CSV.
+- [ ] Registrar también los inicios de sesión fallidos y los cambios de contraseña por recuperación (cuando exista).
+- [ ] Definir cuánto tiempo se conserva (ver RGPD).
+
+### 🧹 Pendiente de limpieza y calidad
+- [ ] Borrar `backend/src/routes/testRoutes.js` y quitar las dependencias que no se usan (`bcryptjs`, `cors`).
+- [ ] Ejecutar `npm audit` y revisar el resultado.
+- [ ] Servir también las fuentes (Inter y Oswald, hoy desde Google Fonts) desde el propio servidor, para no depender de ningún tercero.
+- [ ] Botón para regenerar el QR en el perfil (el endpoint `POST /api/users/me/qr` ya existe).
+- [ ] Tests automáticos de la API (permisos por rol, validaciones y rutas de admin).
+- [ ] Guía de despliegue: dominio con HTTPS (Caddy), variables de entorno y copias de seguridad de Supabase.
+
+### 📋 Más adelante
+**RGPD** (imprescindible antes de abrirlo a socios reales, porque se guardan NIF y direcciones)
+- [ ] Política de privacidad y términos de uso.
+- [ ] Casilla de aceptación en el registro.
+- [ ] Que el socio pueda descargar sus datos.
+- [ ] Que el socio pueda eliminar su propia cuenta.
+- [ ] Definir cuánto tiempo se conserva el historial de accesos y la auditoría.
+
+**Mejoras de escáner y datos**
+- [ ] Evitar el doble escaneo accidental (tiempo mínimo entre lecturas).
+- [ ] Cierre automático nocturno de las entradas que se quedaron abiertas (salidas olvidadas).
+- [ ] Historial de entradas para el admin por fecha o por socio, con exportación a CSV.
+- [ ] Estadísticas de afluencia (horas punta, días con más asistencia).
+
+**Producto**
+- [ ] Cuotas y planes (pendiente de definir).
+- [ ] PWA instalable y modo kiosco para la tablet.
+- [ ] Rol de recepcionista con permisos más limitados que el admin.
