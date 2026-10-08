@@ -13,6 +13,7 @@ Sistema de control de acceso para gimnasios. Cada socio tiene un código QR pers
 **Administrador**
 - Panel con usuarios registrados, entradas del día y quién está dentro ahora (se actualiza cada 15 s).
 - Escáner de QR por cámara, o introduciendo el código a mano, con aviso sonoro y visual.
+- **Auditoría:** pantalla con todas las acciones sobre cuentas (quién, a quién, qué y cuándo), con filtros y paginación.
 - **Corrección de datos de los socios**: teléfono, email, dirección y nombre, y datos de facturación (nombre fiscal, NIF/CIF y dirección de cobro). Solo esos campos; el rol, el estado, el usuario y la contraseña no se pueden tocar desde el panel.
 - La primera lectura de un QR registra la **entrada**; la siguiente, la **salida** (con duración de la sesión).
 
@@ -41,6 +42,7 @@ GymWeb/
     ├── login.html · register.html
     ├── profile.html           # Vista del socio
     ├── admin.html             # Panel de administración
+    ├── audit.html             # Registro de auditoría (admin)
     ├── scanner.html           # Escáner de QR (admin o scanner)
     └── js/ · styles.css
 ```
@@ -59,6 +61,7 @@ GymWeb/
 | PATCH | `/api/users/:id` | Admin | Corregir contacto y facturación de un usuario |
 | PATCH | `/api/users/:id/status` | Admin | Activar o desactivar una cuenta |
 | DELETE | `/api/users/:id` | Admin | Eliminar una cuenta y su historial |
+| GET | `/api/audit` | Admin | Consultar el registro de auditoría (paginado, con filtros) |
 | GET | `/api/users` | Admin | Listar usuarios |
 | POST | `/api/entries` | Admin o Scanner | Registrar entrada/salida por QR |
 | GET | `/api/entries` | Usuario | Mi historial (el admin ve todos) |
@@ -105,6 +108,15 @@ Desde la tabla de socios, cada fila tiene un botón para **desactivar/reactivar*
 - **Borrado atómico:** la cuenta, su historial y el registro de auditoría se escriben en una única transacción (función `delete_user_cascade`, ver [backend/sql/baja_usuarios.sql](backend/sql/baja_usuarios.sql)). Si algo falla, no se borra nada a medias. Solo el backend puede ejecutarla.
 - **Auditoría sin datos personales:** al eliminar solo se guarda el usuario y el rol, no el resto de datos de la persona.
 - **Rate limit:** 60 acciones cada 15 min.
+
+### Pantalla de auditoría
+
+En `/audit.html` (solo admin) se consulta el registro de `audit_log`. Cada fila muestra la fecha, el tipo de acción, quién la hizo, a qué cuenta afectó y un resumen de lo que cambió.
+
+- **Filtros:** por tipo de acción, por nombre de usuario (busca como autor o como cuenta afectada) y por rango de fechas. Combinables, con paginación de 25 en 25.
+- **Cuentas eliminadas:** el registro conserva su nombre de usuario, así que la fila sigue siendo legible ("Cuenta eliminada (@usuario)"). Al buscar por usuario no aparecen las acciones de cuentas que ya no existen.
+- **Qué se guarda y qué no:** solo los nombres de los campos modificados, nunca sus valores, para no duplicar datos personales en la auditoría.
+- **Seguridad:** la ruta valida todos los filtros (el usuario solo admite letras, números, `_` y `.`), solo responde a administradores y es de solo lectura; el registro no se puede modificar ni borrar desde la web.
 
 **Formularios:** abren en una ventana modal con el mismo estilo del resto de la web. Marcan el campo con el error y explican qué pasa, muestran el progreso ("Guardando cambios…"), confirman el resultado (verde si se guardó, rojo si falló, con el motivo) y distinguen un fallo de validación de uno de conexión. El botón de guardar solo se activa si hay cambios.
 
@@ -187,8 +199,9 @@ El escáner está pensado para dejarse abierto en una tablet de recepción. Para
 - Registro, login, roles (`user` / `admin` / `scanner`) y escáner de recepción con QR.
 - Perfil del socio con edición de todos sus datos, datos de facturación y cambio de contraseña.
 - Panel de admin: corrección de datos de contacto y facturación, desactivar/reactivar y eliminar cuentas.
-- Auditoría de las acciones del admin y de los cambios de perfil (tabla `audit_log`).
+- Auditoría de las acciones del admin y de los cambios de perfil (tabla `audit_log`), con pantalla de consulta, filtros y paginación.
 - Seguridad base: validación en servidor, `helmet`, límite de intentos, RLS activado en Supabase, `node_modules` fuera de git.
+- Librerías de QR (`qrcodejs` y `html5-qrcode`) servidas desde `frontend/vendor`, sin CDN. La CSP solo permite scripts propios (`'self'`).
 - Páginas 403 y 404.
 
 ### 🔜 Siguiente
@@ -203,14 +216,15 @@ El escáner está pensado para dejarse abierto en una tablet de recepción. Para
 - [ ] Crear las cuentas `scanner` de las tablets desde el panel, en lugar de cambiar el rol a mano en Supabase.
 - [ ] Decidir cómo recibe el socio su acceso: contraseña temporal o enlace de activación por email (depende del punto 1).
 
-**3. Pantalla de auditoría**
-- [ ] Sección en el panel de admin para consultar `audit_log`: quién hizo qué, a quién y cuándo.
-- [ ] Filtros por admin, por usuario afectado, por tipo de acción y por fecha.
+**3. Mejoras de la auditoría** (la pantalla básica ya está hecha)
+- [ ] Exportar el registro a CSV.
+- [ ] Registrar también los inicios de sesión fallidos y los cambios de contraseña por recuperación (cuando exista).
+- [ ] Definir cuánto tiempo se conserva (ver RGPD).
 
 ### 🧹 Pendiente de limpieza y calidad
 - [ ] Borrar `backend/src/routes/testRoutes.js` y quitar las dependencias que no se usan (`bcryptjs`, `cors`).
 - [ ] Ejecutar `npm audit` y revisar el resultado.
-- [ ] Servir `qrcodejs` y `html5-qrcode` desde el propio servidor (carpeta `frontend/vendor`) en lugar de cargarlas de internet (CDN). Con ello se puede cerrar la CSP a `'self'`, no se depende de un tercero y el escáner funciona sin conexión a internet.
+- [ ] Servir también las fuentes (Inter y Oswald, hoy desde Google Fonts) desde el propio servidor, para no depender de ningún tercero.
 - [ ] Botón para regenerar el QR en el perfil (el endpoint `POST /api/users/me/qr` ya existe).
 - [ ] Tests automáticos de la API (permisos por rol, validaciones y rutas de admin).
 - [ ] Guía de despliegue: dominio con HTTPS (Caddy), variables de entorno y copias de seguridad de Supabase.

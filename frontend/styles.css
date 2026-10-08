@@ -1085,6 +1085,31 @@ body.loaded .people li { animation: none; }
 .btn-icon.is-danger { --btn-fg: var(--danger); }
 .btn-icon.is-danger:hover { background: var(--danger-soft); border-color: rgba(255, 84, 104, 0.4); }
 
+/* ---------- Pantalla de auditoría ---------- */
+.input[type="date"] { color-scheme: dark; }
+.audit-filters {
+  display: grid;
+  grid-template-columns: 1.3fr 1.3fr 1fr 1fr auto;
+  gap: 0.8rem;
+  align-items: end;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+.audit-filters .search { width: 100%; }
+.audit-filters .select, .audit-filters .input { width: 100%; }
+.audit-filters .input.no-icon { padding-top: 0.55rem; padding-bottom: 0.55rem; font-size: 0.88rem; }
+.table-wrap.loading { opacity: 0.55; transition: opacity 0.2s; }
+.table td.audit-detail { max-width: 360px; white-space: normal; color: var(--text-2); font-size: 0.88rem; }
+.pager { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.9rem 1.5rem; border-top: 1px solid var(--border); font-size: 0.88rem; }
+.pager-btns { display: flex; gap: 0.5rem; }
+@media (max-width: 900px) {
+  .audit-filters { grid-template-columns: 1fr 1fr; }
+}
+@media (max-width: 600px) {
+  .audit-filters { grid-template-columns: 1fr; padding-left: 1.1rem; padding-right: 1.1rem; }
+  .pager { padding-left: 1.1rem; padding-right: 1.1rem; }
+}
+
 /* ---------- Páginas de error (403 / 404) ---------- */
 .error-wrap { display: grid; place-items: center; min-height: 100vh; padding: 2rem 1.5rem; text-align: center; }
 .error-box { display: flex; flex-direction: column; align-items: center; gap: 1.3rem; width: min(520px, 100%); animation: fadeUp 0.7s var(--ease) both; }
@@ -1186,4 +1211,9 @@ body.loaded .people li { animation: none; }
   .stat-icon { width: 34px; height: 34px; }
   .stat-label { font-size: 0.72rem; }
   .manual { flex-direction: column; }
+  /* Con 4 enlaces en el menú, en pantallas muy estrechas el nombre del logo no cabe */
+  .navbar-inner { gap: 0.6rem; padding: 0 0.9rem; }
+  .navbar .brand-name { display: none; }
+  .nav-links a { padding: 0.5rem 0.6rem; }
+  .nav-user { gap: 8px; }
 }
