@@ -174,6 +174,7 @@ body.is-scanner .nav-links { display: none !important; }
 .btn-sm { padding: 0.5rem 0.8rem; font-size: 0.84rem; }
 .btn-icon { padding: 0.55rem; }
 
+.btn .btn-label { display: inline-flex; align-items: center; gap: 8px; }
 .btn .spinner { display: none; }
 .btn.is-loading { pointer-events: none; }
 .btn.is-loading .btn-label { opacity: 0; }
@@ -1069,6 +1070,20 @@ body.loaded .people li { animation: none; }
   .mf-actions { flex-wrap: wrap; }
   .mf-actions .dirty-note { flex-basis: 100%; }
 }
+
+/* ---------- Acciones destructivas ---------- */
+.btn-solid-danger {
+  --btn-bg: var(--danger);
+  --btn-fg: #fff;
+  border-color: transparent;
+  box-shadow: 0 10px 30px -12px rgba(255, 84, 104, 0.6);
+}
+.btn-solid-danger:hover { background: #ff6f81; border-color: transparent; color: #fff; }
+.modal-danger .mf-head .mf-ico { background: var(--danger-soft); color: var(--danger); }
+.modal-danger .mf-section-title svg { color: var(--danger); }
+.row-actions { display: inline-flex; gap: 0.4rem; justify-content: flex-end; }
+.btn-icon.is-danger { --btn-fg: var(--danger); }
+.btn-icon.is-danger:hover { background: var(--danger-soft); border-color: rgba(255, 84, 104, 0.4); }
 
 /* ---------- Páginas de error (403 / 404) ---------- */
 .error-wrap { display: grid; place-items: center; min-height: 100vh; padding: 2rem 1.5rem; text-align: center; }

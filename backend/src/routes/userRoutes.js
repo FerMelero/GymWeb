@@ -18,5 +18,7 @@ const validId = (req, res, next) =>
 
 router.get('/:id', authMiddleware, adminMiddleware, validId, userController.getUserById)
 router.patch('/:id', authMiddleware, adminMiddleware, validId, userController.updateUserByAdmin)
+router.patch('/:id/status', authMiddleware, adminMiddleware, validId, userController.setUserStatus)
+router.delete('/:id', authMiddleware, adminMiddleware, validId, userController.deleteUser)
 
 module.exports = router

@@ -36,6 +36,8 @@ const ICONS = {
   hash: '<path d="M4 9h16"/><path d="M4 15h16"/><path d="M10 3 8 21"/><path d="m16 3-2 18"/>',
   zap: '<path d="M13 2 3 14h9l-1 8 10-12h-9z"/>',
   timer: '<path d="M10 2h4"/><path d="M12 14l3-3"/><circle cx="12" cy="14" r="8"/>',
+  trash: '<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/>',
+  power: '<path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><path d="M12 2v10"/>',
   edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
   pin: '<path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
   receipt: '<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 17.5v-11"/>',
@@ -245,6 +247,7 @@ const RULES = {
 // config: { title, subtitle, icon, notice, submitLabel,
 //   sections: [{ title, icon, note, fields: [{ name, label, icon, type, value, placeholder, autocomplete,
 //     maxlength, required, hint, span, validate(value, values), showWhen(values) }] }],
+//   danger (estilo rojo, acciones destructivas), alwaysEnabled (confirmaciones sin campos),
 //   onSubmit(values, changed) -> { ok, message, errors } }
 // Los campos con showWhen son auxiliares (p. ej. contraseña actual): solo se piden cuando hacen falta
 // y no cuentan como "cambio".
@@ -281,7 +284,7 @@ function openFormModal(config) {
   const backdrop = document.createElement('div');
   backdrop.className = 'modal-backdrop';
   backdrop.innerHTML = `
-    <form class="modal modal-form card" role="dialog" aria-modal="true" aria-labelledby="mfTitle" novalidate>
+    <form class="modal modal-form card${config.danger ? ' modal-danger' : ''}" role="dialog" aria-modal="true" aria-labelledby="mfTitle" novalidate>
       <div class="mf-head">
         <span class="mf-ico">${icon(config.icon || 'edit', 22)}</span>
         <div class="mf-titles"><h3 id="mfTitle">${escapeHtml(config.title)}</h3>
@@ -302,7 +305,7 @@ function openFormModal(config) {
         <div class="mf-actions">
           <span class="dirty-note" id="mfDirty">Sin cambios</span>
           <button type="button" class="btn" data-close id="mfCancel">Cancelar</button>
-          <button type="submit" class="btn btn-primary" id="mfSubmit" disabled>
+          <button type="submit" class="btn ${config.danger ? 'btn-solid-danger' : 'btn-primary'}" id="mfSubmit" disabled>
             <span class="btn-label">${escapeHtml(config.submitLabel || 'Guardar cambios')}</span><span class="spinner"></span>
           </button>
         </div>
@@ -361,9 +364,9 @@ function openFormModal(config) {
     });
     const n = changedNames(values).length;
     const dirty = n > 0;
-    dirtyNote.textContent = saved ? 'Guardado' : dirty ? `${n} ${n === 1 ? 'cambio' : 'cambios'} sin guardar` : 'Sin cambios';
+    dirtyNote.textContent = saved ? 'Hecho' : config.alwaysEnabled ? '' : dirty ? `${n} ${n === 1 ? 'cambio' : 'cambios'} sin guardar` : 'Sin cambios';
     dirtyNote.classList.toggle('dirty', dirty && !saved);
-    submitBtn.disabled = !dirty || sending || saved;
+    submitBtn.disabled = (!dirty && !config.alwaysEnabled) || sending || saved;
   }
 
   function setSending(on) {
@@ -439,11 +442,11 @@ function openFormModal(config) {
       saved = true;
       fields.forEach((f) => { initial[f.name] = f.type === 'checkbox' ? false : (f.showWhen ? '' : values[f.name]); });
       form.querySelectorAll('input').forEach((el) => { el.disabled = true; });
-      setBanner('success', `${icon('check', 18)}<span>${escapeHtml(result.message || 'Cambios guardados correctamente')}</span>`);
-      toast(result.message || 'Cambios guardados correctamente', 'success');
+      setBanner('success', `${icon('check', 18)}<span>${escapeHtml(result.message || 'Hecho correctamente')}</span>`);
+      toast(result.message || 'Hecho correctamente', 'success');
       cancelBtn.disabled = false;
       cancelBtn.textContent = 'Cerrar';
-      submitBtn.querySelector('.btn-label').textContent = 'Guardado';
+      submitBtn.querySelector('.btn-label').textContent = config.alwaysEnabled ? 'Hecho' : 'Guardado';
       refresh();
       closeTimer = setTimeout(close, 1800);
       return;

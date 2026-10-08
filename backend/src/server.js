@@ -61,10 +61,21 @@ const profileLimiter = rateLimit({
   message: { success: false, message: 'Demasiados intentos, espera unos minutos' },
 });
 
+// Acciones destructivas del admin (cambiar estado, eliminar)
+const adminActionLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 60,
+  standardHeaders: 'draft-7',
+  legacyHeaders: false,
+  message: { success: false, message: 'Demasiadas acciones seguidas, espera unos minutos' },
+});
+
 app.use('/api/auth/login', authLimiter);
 app.use('/api/auth/register', authLimiter);
 app.patch('/api/users/me', profileLimiter);
 app.patch('/api/users/me/password', profileLimiter);
+app.patch('/api/users/:id/status', adminActionLimiter);
+app.delete('/api/users/:id', adminActionLimiter);
 app.use('/api', apiLimiter);
 
 // Importar rutas
