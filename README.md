@@ -14,36 +14,42 @@ Sistema de control de acceso para gimnasios. Cada socio tiene un código QR pers
 - Panel con usuarios registrados, entradas del día y quién está dentro ahora (se actualiza cada 15 s).
 - Escáner de QR por cámara, o introduciendo el código a mano, con aviso sonoro y visual.
 - **Auditoría:** pantalla con todas las acciones sobre cuentas (quién, a quién, qué y cuándo), con filtros y paginación.
-- **Corrección de datos de los socios**: teléfono, email, dirección y nombre, y datos de facturación (nombre fiscal, NIF/CIF y dirección de cobro). Solo esos campos; el rol, el estado, el usuario y la contraseña no se pueden tocar desde el panel.
+- **Corrección de datos de los socios**: teléfono, email, dirección y nombre, y datos de facturación (nombre fiscal, NIF/CIF y dirección de cobro). El usuario, la contraseña y el rol no se pueden tocar desde el panel.
+- **Desactivar, reactivar y eliminar cuentas** de socios, con confirmación y registro en la auditoría.
 - La primera lectura de un QR registra la **entrada**; la siguiente, la **salida** (con duración de la sesión).
 
 ## Stack
 
 | Capa | Tecnología |
 |---|---|
-| Backend | Node.js, Express |
+| Backend | Node.js, Express, `helmet`, `express-rate-limit`, `zod` |
 | Base de datos | Supabase (PostgreSQL) |
 | Autenticación | JWT + bcrypt, roles `user` / `admin` / `scanner` |
 | Frontend | HTML, CSS y JavaScript sin framework |
-| Librerías | `qrcodejs` (generar QR), `html5-qrcode` (leer QR) |
+| Librerías | `qrcodejs` (generar QR) y `html5-qrcode` (leer QR), servidas desde `frontend/vendor` |
 
 ## Estructura
 
 ```
 GymWeb/
 ├── backend/
+│   ├── .env.example           # Plantilla de variables de entorno
+│   ├── sql/                   # Scripts para Supabase (columnas, auditoría, borrado de cuentas)
 │   └── src/
-│       ├── server.js          # Servidor, helmet, rate limit, rutas
+│       ├── server.js          # Servidor, helmet, límites de intentos, rutas, 404
 │       ├── config/            # Cliente de Supabase
-│       ├── middleware/        # authMiddleware, adminMiddleware
-│       ├── routes/            # auth, users, entries
-│       └── controllers/       # Lógica de cada ruta
+│       ├── middleware/        # authMiddleware, adminMiddleware, scannerMiddleware
+│       ├── routes/            # auth, users, entries, audit
+│       ├── controllers/       # Lógica de cada ruta
+│       └── utils/             # Validación de NIF/CIF
 └── frontend/                  # Páginas estáticas servidas por Express
     ├── login.html · register.html
     ├── profile.html           # Vista del socio
     ├── admin.html             # Panel de administración
     ├── audit.html             # Registro de auditoría (admin)
     ├── scanner.html           # Escáner de QR (admin o scanner)
+    ├── 403.html · 404.html    # Páginas de error
+    ├── vendor/                # Librerías de QR (sin CDN)
     └── js/ · styles.css
 ```
 
@@ -79,11 +85,12 @@ Las rutas protegidas requieren la cabecera `Authorization: Bearer <token>`.
 | Nombre fiscal, NIF/CIF, dirección de cobro | ✅ | ✅ solo si confirma que lo pidió el cliente |
 | Usuario (login) | ✅ con contraseña actual | ❌ |
 | Contraseña | ✅ con contraseña actual | ❌ |
-| Rol, estado activo | ❌ | ❌ |
+| Rol | ❌ | ❌ |
+| Estado (activar/desactivar) | ❌ | ✅ con botón propio, nunca sobre admins ni sobre sí mismo |
 
 **Por qué así**
 - **Lista blanca estricta:** cada ruta valida el cuerpo con `zod` en modo estricto y rechaza cualquier campo que no esté previsto. Mandar `{"rol":"admin"}` a `PATCH /api/users/me` devuelve 400, así que nadie puede subirse de privilegios editando su perfil.
-- **El admin no toca accesos:** puede corregir erratas y actualizar datos comerciales, pero no cambiar el usuario, el rol, el estado ni la contraseña de otra persona. Eso evita que una cuenta de admin comprometida sirva para apropiarse de cuentas ajenas.
+- **El admin no toca accesos:** puede corregir erratas y actualizar datos comerciales, pero no cambiar el usuario, el rol ni la contraseña de otra persona. Eso evita que una cuenta de admin comprometida sirva para apropiarse de cuentas ajenas. El único control sobre el acceso es activar o desactivar la cuenta (ver más abajo).
 - **Facturación bajo petición del cliente:** si el admin modifica nombre fiscal, NIF/CIF o dirección de cobro, el formulario exige marcar *"el cliente ha solicitado este cambio"* y el servidor lo comprueba también.
 - **Email y usuario piden contraseña:** son los datos con los que se inicia sesión; sin esa comprobación, una sesión abierta olvidada bastaría para quedarse con la cuenta.
 - **NIF/CIF validado de verdad:** se comprueba el formato y el dígito de control de DNI, NIE y CIF, no solo que "parezca" uno.
@@ -151,58 +158,66 @@ El escáner está pensado para dejarse abierto en una tablet de recepción. Para
 ## Puesta en marcha
 
 1. **Instalar dependencias**
-```bash
+   ```bash
    cd backend
    npm install
-```
+   ```
 
-2. **Crear `backend/.env`**
-```env
+2. **Crear `backend/.env`** a partir de la plantilla
+   ```bash
+   cp .env.example .env
+   ```
+   ```env
    PORT=5000
    SUPABASE_URL=https://TU_PROYECTO.supabase.co
    SUPABASE_SERVICE_ROLE_KEY=tu_service_role_key   # solo en el servidor, nunca en el frontend
    JWT_SECRET=una_cadena_larga_y_aleatoria_de_32+_caracteres
-```
+   ```
+   El servidor no arranca si `JWT_SECRET` falta o tiene menos de 32 caracteres.
 
-3. **Preparar la base de datos en Supabase**
+3. **Preparar la base de datos en Supabase** (SQL Editor, en este orden)
 
-   Ejecuta [backend/sql/edicion_perfil.sql](backend/sql/edicion_perfil.sql) (columnas de dirección y facturación y tabla `audit_log`) y [backend/sql/baja_usuarios.sql](backend/sql/baja_usuarios.sql) (función para eliminar cuentas), además de lo siguiente.
-
-   Tablas `users` (`id`, `email`, `password_hash`, `nombre`, `telefono`, `username`, `rol`, `activo`, `qr_code`, `created_at`) y `entries` (`id`, `user_id`, `entrada_timestamp`, `salida_timestamp`), y después:
-```sql
-   alter table users add constraint users_email_key    unique (email);
-   alter table users add constraint users_username_key unique (username);
-   alter table users add constraint users_qr_code_key  unique (qr_code);
-   create unique index entries_one_open_per_user on entries (user_id) where salida_timestamp is null;
-   alter table users   enable row level security;
-   alter table entries enable row level security;
-```
+   1. Crea las tablas `users` (`id`, `email`, `password_hash`, `nombre`, `telefono`, `username`, `rol`, `activo`, `qr_code`, `created_at`) y `entries` (`id`, `user_id`, `entrada_timestamp`, `salida_timestamp`). Si `rol` tiene una restricción `CHECK`, debe permitir `user`, `admin` y `scanner`.
+   2. Restricciones, índice y RLS:
+      ```sql
+      alter table users add constraint users_email_key    unique (email);
+      alter table users add constraint users_username_key unique (username);
+      alter table users add constraint users_qr_code_key  unique (qr_code);
+      create unique index entries_one_open_per_user on entries (user_id) where salida_timestamp is null;
+      alter table users   enable row level security;
+      alter table entries enable row level security;
+      ```
+   3. Ejecuta [backend/sql/edicion_perfil.sql](backend/sql/edicion_perfil.sql): columnas de dirección y facturación, y la tabla `audit_log` (con RLS).
+   4. Ejecuta [backend/sql/baja_usuarios.sql](backend/sql/baja_usuarios.sql): función para eliminar cuentas.
 
 4. **Arrancar**
-```bash
+   ```bash
    npm start          # o: npm run dev
-```
-   Abre `http://localhost:5000/login.html`. Para crear un administrador, cambia el campo `rol` a `admin` de un usuario directamente en Supabase.
+   ```
+   Abre `http://localhost:5000` (muestra el login). Para crear un administrador, cambia el campo `rol` a `admin` de un usuario directamente en Supabase.
 
 ## Seguridad
 
 - Contraseñas con **bcrypt**; login resistente a inyección de filtros y a enumeración de usuarios por tiempo de respuesta.
-- **JWT** de 8 h; el rol y el estado activo se revalidan en la BD en cada petición.
+- **JWT** de 8 h (30 días para la cuenta `scanner`); el rol y el estado activo se revalidan en la BD en cada petición.
 - Rutas de administración y datos de otros socios protegidas en el servidor; el escáner solo admite `admin` o `scanner` (mínimo privilegio).
-- `helmet` (CSP y cabeceras), límite de intentos en login/registro y límite general de la API.
+- `helmet` con CSP estricta (solo scripts propios), sin CORS abierto y cuerpo de las peticiones limitado a 10 kb.
+- Límite de intentos en login/registro, en cambios de perfil y contraseña, en acciones destructivas del admin y un límite general de la API.
+- Validación de todo lo que entra con `zod` (lista blanca, rechaza campos no previstos) y errores internos que nunca se envían al cliente.
+- Auditoría de los cambios de perfil y de las acciones del admin sobre cuentas.
 - **RLS activado** en Supabase: el acceso a los datos solo se hace desde el backend con la `service_role` key.
 - En producción, servir siempre por **HTTPS** (la cámara del escáner lo exige fuera de localhost).
 
 ## Estado y próximos pasos
 
 ### ✅ Hecho
-- Registro, login, roles (`user` / `admin` / `scanner`) y escáner de recepción con QR.
+- Registro, login, roles (`user` / `admin` / `scanner`) y escáner de recepción con QR, con cuenta dedicada y modo kiosco para la tablet.
 - Perfil del socio con edición de todos sus datos, datos de facturación y cambio de contraseña.
 - Panel de admin: corrección de datos de contacto y facturación, desactivar/reactivar y eliminar cuentas.
 - Auditoría de las acciones del admin y de los cambios de perfil (tabla `audit_log`), con pantalla de consulta, filtros y paginación.
 - Seguridad base: validación en servidor, `helmet`, límite de intentos, RLS activado en Supabase, `node_modules` fuera de git.
 - Librerías de QR (`qrcodejs` y `html5-qrcode`) servidas desde `frontend/vendor`, sin CDN. La CSP solo permite scripts propios (`'self'`).
-- Páginas 403 y 404.
+- Páginas 403 y 404, y URLs sin `.html` (`/`, `/login`, `/admin`...).
 
 ### 🔜 Siguiente
 
@@ -222,7 +237,8 @@ El escáner está pensado para dejarse abierto en una tablet de recepción. Para
 - [ ] Definir cuánto tiempo se conserva (ver RGPD).
 
 ### 🧹 Pendiente de limpieza y calidad
-- [ ] Borrar `backend/src/routes/testRoutes.js` y quitar las dependencias que no se usan (`bcryptjs`, `cors`).
+- [ ] Quitar las dependencias que ya no se usan (`bcryptjs` y `cors`).
+- [ ] Actualizar `nodemon`: `package.json` tiene la versión 1.x, muy antigua; la 3.x es la actual.
 - [ ] Ejecutar `npm audit` y revisar el resultado.
 - [ ] Servir también las fuentes (Inter y Oswald, hoy desde Google Fonts) desde el propio servidor, para no depender de ningún tercero.
 - [ ] Botón para regenerar el QR en el perfil (el endpoint `POST /api/users/me/qr` ya existe).
