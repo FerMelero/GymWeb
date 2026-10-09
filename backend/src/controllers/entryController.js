@@ -54,6 +54,9 @@ exports.registerEntry = async (req, res) => {
       .limit(1)
       .maybeSingle(); // maybeSingle permite que no haya resultados
 
+    // Si la consulta falla no sabemos si hay una entrada abierta: no se debe asumir que no
+    if (entryError) throw entryError;
+
     // 5. CASO A: No tiene entrada abierta → REGISTRAR ENTRADA
     if (!entradaAbierta) {
       const { data: nuevaEntrada, error: insertError } = await supabase
@@ -88,7 +91,7 @@ exports.registerEntry = async (req, res) => {
     // 6. CASO B: Sí tiene entrada abierta → REGISTRAR SALIDA
     const salidaTimestamp = new Date().toISOString();
     
-    const { data: entradaActualizada, error: updateError } = await supabase
+    const { error: updateError } = await supabase
       .from('entries')
       .update({ salida_timestamp: salidaTimestamp })
       .eq('id', entradaAbierta.id)
