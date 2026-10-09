@@ -6,9 +6,4 @@ node_modules/
 dist/
 build/
 backend/node_modules
-backend/package-lock.json
-backend/package-lock.json
-backend/package.json
-backend/package-lock.json
 adiciones.txt
-backend/sql

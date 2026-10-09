@@ -208,6 +208,21 @@ El escáner está pensado para dejarse abierto en una tablet de recepción. Para
 - **RLS activado** en Supabase: el acceso a los datos solo se hace desde el backend con la `service_role` key.
 - En producción, servir siempre por **HTTPS** (la cámara del escáner lo exige fuera de localhost).
 
+## Integración continua (GitHub Actions)
+
+En cada push y pull request a `main` o `develop` se ejecuta [.github/workflows/ci.yml](.github/workflows/ci.yml):
+1. Instala las dependencias con `npm ci` (versiones exactas del `package-lock.json`).
+2. Comprueba que todos los `.js` del backend y del frontend tienen la sintaxis correcta.
+3. Pasa **ESLint** ([backend/eslint.config.js](backend/eslint.config.js)), que detecta variables sin definir, como cuando se coló `require('zod')` en código que corre en el navegador.
+
+Para ejecutar el lint en local: `cd backend && npm run lint`.
+
+**Dependabot** ([.github/dependabot.yml](.github/dependabot.yml)) abre cada semana un pull request con las actualizaciones de dependencias del backend y de las versiones de las Actions, y avisa de vulnerabilidades.
+
+**Recomendado en GitHub** (Settings → Branches → regla para `main`): exigir que el CI pase antes de fusionar un pull request.
+
+El CI no usa ningún secreto. Cuando haya tests de la API se ejecutarán con una base de datos simulada; no hay que poner la clave `service_role` de Supabase en los secretos del repositorio.
+
 ## Estado y próximos pasos
 
 ### ✅ Hecho
@@ -218,6 +233,7 @@ El escáner está pensado para dejarse abierto en una tablet de recepción. Para
 - Seguridad base: validación en servidor, `helmet`, límite de intentos, RLS activado en Supabase, `node_modules` fuera de git.
 - Librerías de QR (`qrcodejs` y `html5-qrcode`) servidas desde `frontend/vendor`, sin CDN. La CSP solo permite scripts propios (`'self'`).
 - Páginas 403 y 404, y URLs sin `.html` (`/`, `/login`, `/admin`...).
+- CI con GitHub Actions (sintaxis y ESLint) y Dependabot.
 
 ### 🔜 Siguiente
 
@@ -239,10 +255,11 @@ El escáner está pensado para dejarse abierto en una tablet de recepción. Para
 ### 🧹 Pendiente de limpieza y calidad
 - [ ] Quitar las dependencias que ya no se usan (`bcryptjs` y `cors`).
 - [ ] Actualizar `nodemon`: `package.json` tiene la versión 1.x, muy antigua; la 3.x es la actual.
-- [ ] Ejecutar `npm audit` y revisar el resultado.
+- [ ] Ejecutar `npm audit` y revisar el resultado (y valorar añadirlo al CI).
+- [ ] Escaneo de secretos (Gitleaks) y CodeQL en el CI.
 - [ ] Servir también las fuentes (Inter y Oswald, hoy desde Google Fonts) desde el propio servidor, para no depender de ningún tercero.
 - [ ] Botón para regenerar el QR en el perfil (el endpoint `POST /api/users/me/qr` ya existe).
-- [ ] Tests automáticos de la API (permisos por rol, validaciones y rutas de admin).
+- [ ] Tests automáticos de la API (permisos por rol, validaciones y rutas de admin), que se ejecuten en el CI.
 - [ ] Guía de despliegue: dominio con HTTPS (Caddy), variables de entorno y copias de seguridad de Supabase.
 
 ### 📋 Más adelante
