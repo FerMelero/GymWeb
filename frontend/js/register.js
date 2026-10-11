@@ -28,6 +28,12 @@
     })
   );
 
+  // La casilla no es un .input: se limpia su error por separado
+  $('aceptaPolitica').addEventListener('change', (e) => {
+    e.target.classList.remove('invalid');
+    errorEl.textContent = '';
+  });
+
   function validate(values) {
     const checks = [
       ['nombre', values.nombre.length >= 2, 'Introduce tu nombre'],
@@ -36,6 +42,7 @@
       ['email', /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(values.email), 'Introduce un email válido'],
       ['contraseña', values.contraseña.length >= 8 && values.contraseña.length <= 72, 'La contraseña debe tener entre 8 y 72 caracteres'],
       ['confirmar', values.confirmar === values.contraseña, 'Las contraseñas no coinciden'],
+      ['aceptaPolitica', values.aceptaPolitica, 'Debes aceptar la política de privacidad y los términos de uso'],
     ];
     const failed = checks.filter(([, ok]) => !ok);
     failed.forEach(([id]) => $(id).classList.add('invalid'));
@@ -52,6 +59,7 @@
       email: $('email').value.trim().toLowerCase(),
       contraseña: $('contraseña').value,
       confirmar: $('confirmar').value,
+      aceptaPolitica: $('aceptaPolitica').checked,
     };
 
     const problem = validate(values);

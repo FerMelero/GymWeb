@@ -6,9 +6,6 @@
   <title>Crear cuenta · GymWeb</title>
   <meta name="theme-color" content="#0a0c0f">
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23c6ff34'/%3E%3Cpath d='M10 16h12M8 11v10M24 11v10M5 13v6M27 13v6' stroke='%230a0c0f' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Oswald:wght@500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
 <body class="auth-page">
@@ -75,7 +72,7 @@
             <label for="contraseña">Contraseña</label>
             <div class="input-wrap">
               <i data-icon="lock" class="input-icon"></i>
-              <input id="contraseña" class="input" type="password" autocomplete="new-password" placeholder="Mínimo 6 caracteres" required>
+              <input id="contraseña" class="input" type="password" autocomplete="new-password" placeholder="Mínimo 8 caracteres" required>
               <button type="button" class="toggle-pass" aria-label="Mostrar contraseña"></button>
             </div>
             <div class="strength" id="strength" data-level="0"><i></i><i></i><i></i><i></i></div>
@@ -89,6 +86,11 @@
             </div>
           </div>
         </div>
+
+        <label class="check" for="aceptaPolitica">
+          <input type="checkbox" id="aceptaPolitica">
+          <span>He leído y acepto la <a href="/privacidad" target="_blank" rel="noopener">política de privacidad</a> y los <a href="/terminos" target="_blank" rel="noopener">términos de uso</a>.</span>
+        </label>
 
         <p id="error" class="form-error" role="alert"></p>
 

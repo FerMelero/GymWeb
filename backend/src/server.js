@@ -21,8 +21,8 @@ app.use(helmet({
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'"],
-      styleSrc: ["'self'", "'unsafe-inline'", 'https://fonts.googleapis.com'],
-      fontSrc: ["'self'", 'https://fonts.gstatic.com'],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      fontSrc: ["'self'"],
       imgSrc: ["'self'", 'data:', 'blob:'],
       mediaSrc: ["'self'", 'blob:'],
       connectSrc: ["'self'"],
@@ -82,6 +82,8 @@ const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const entryRoutes = require('./routes/entryRoutes');
 const auditRoutes = require('./routes/auditRoutes');
+const legalRoutes = require('./routes/legalRoutes');
+const { pendingKeys } = require('./config/legal');
 
 // Página de inicio: el login (si ya hay sesión, login.js redirige a la página de su rol)
 const frontendDir = path.join(__dirname, '../../frontend');
@@ -94,6 +96,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/entries', entryRoutes);
 app.use('/api/audit', auditRoutes);
+app.use('/api/legal', legalRoutes);
 
 // 403 con su código HTTP real (la página estática por sí sola respondería 200)
 app.get(['/403', '/403.html'], (req, res) => res.status(403).sendFile(path.join(frontendDir, '403.html')));
@@ -122,4 +125,11 @@ app.use((err, req, res, next) => {
 // Iniciar servidor
 app.listen(PORT, () => {
   console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
+
+  // Recordatorio: los documentos legales no deben publicarse con datos pendientes
+  const pending = pendingKeys();
+  if (pending.length) {
+    console.warn(`⚠️  Faltan ${pending.length} datos legales por completar en backend/src/config/legal.js:`);
+    pending.forEach((key) => console.warn(`   - ${key}`));
+  }
 });

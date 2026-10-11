@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Términos de uso · GymWeb</title>
+  <meta name="theme-color" content="#0a0c0f">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23c6ff34'/%3E%3Cpath d='M10 16h12M8 11v10M24 11v10M5 13v6M27 13v6' stroke='%230a0c0f' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="auth-page">
+  <div class="bg-blobs"><span></span><span></span><span></span></div>
+  <div class="bg-grid"></div>
+
+  <main class="legal-wrap">
+    <a class="brand" data-home href="/"><span class="brand-mark"><i data-icon="dumbbell" data-size="20"></i></span><b class="brand-name">Gym<span>Web</span></b></a>
+
+    <div class="draft-banner hidden" id="draftBanner" role="status">
+      <i data-icon="alert" data-size="18"></i>
+      <span>Documento en borrador: faltan datos por completar. No debe publicarse así.</span>
+    </div>
+
+    <article class="card legal" id="legal" aria-busy="true">
+      <p class="muted" id="legalLoading">Cargando…</p>
+      <div class="hidden" id="legalBody">
+        <h1 class="display">Términos de <span class="accent">uso</span></h1>
+        <p class="legal-meta">Versión <span data-legal="version"></span> · Actualizados el <span data-legal="actualizadaFmt"></span></p>
+
+        <h2>1. Quién ofrece el servicio</h2>
+        <ul>
+          <li><strong>Titular:</strong> <span data-legal="responsable.nombre"></span></li>
+          <li><strong>NIF / CIF:</strong> <span data-legal="responsable.nif"></span></li>
+          <li><strong>Domicilio:</strong> <span data-legal="responsable.domicilio"></span></li>
+          <li><strong>Email de contacto:</strong> <span data-legal="responsable.email"></span></li>
+          <li data-legal-show="responsable.telefono"><strong>Teléfono:</strong> <span data-legal="responsable.telefono"></span></li>
+        </ul>
+
+        <h2>2. Objeto</h2>
+        <p>Estos términos regulan el uso de la aplicación de control de acceso y gestión de socios del gimnasio (en adelante, «la aplicación»), que te permite crear una cuenta, consultar y editar tus datos, ver tu historial de accesos y obtener tu código QR personal. Al registrarte confirmas que los has leído y que los aceptas.</p>
+
+        <h2>3. Tu cuenta</h2>
+        <ul>
+          <li>Debes facilitar datos veraces y mantenerlos actualizados.</li>
+          <li>Eres responsable de guardar tu contraseña de forma confidencial y de la actividad que se realice con tu cuenta.</li>
+          <li>No compartas tu cuenta. Si sospechas que alguien la ha usado sin permiso, cambia tu contraseña y avisa cuanto antes al gimnasio.</li>
+          <li>La edad mínima para registrarte se indica en la <a href="/privacidad">política de privacidad</a>.</li>
+        </ul>
+
+        <h2>4. Tu código QR</h2>
+        <p>Tu código QR es personal e intransferible: es el que identifica tus entradas y salidas. No lo compartas ni lo muestres a terceros. Si pierdes el código o crees que otra persona lo ha copiado, avisa al gimnasio sin demora. Que otra persona use tu código puede dar lugar a la suspensión de la cuenta.</p>
+
+        <h2>5. Uso adecuado</h2>
+        <p>No puedes intentar acceder a cuentas ajenas o a zonas de la aplicación que no te corresponden, interferir en su funcionamiento (por ejemplo, con ataques o con sistemas automáticos que la sobrecarguen) ni usarla con fines ilícitos.</p>
+
+        <h2>6. Suspensión y baja</h2>
+        <p>El gimnasio puede desactivar tu cuenta si incumples estos términos o las normas del gimnasio, o por los motivos previstos en tu contrato de socio. Puedes solicitar en cualquier momento la baja y la eliminación de tu cuenta escribiendo al email de contacto; el tratamiento de tus datos en ese caso se explica en la <a href="/privacidad">política de privacidad</a>.</p>
+
+        <h2>7. Disponibilidad</h2>
+        <p>Procuramos que la aplicación esté disponible, pero no garantizamos un funcionamiento ininterrumpido: puede haber paradas por mantenimiento o incidencias técnicas.</p>
+
+        <h2>8. Propiedad intelectual</h2>
+        <p>La aplicación, su diseño y su código están protegidos por la normativa de propiedad intelectual. Solo se te concede el uso personal previsto en estos términos.</p>
+
+        <h2>9. Datos personales</h2>
+        <p>El tratamiento de tus datos personales se describe en la <a href="/privacidad">política de privacidad</a>.</p>
+
+        <h2>10. Cambios en los términos</h2>
+        <p>Podemos actualizar estos términos. Te informaremos de los cambios relevantes y la versión y fecha vigentes figuran al principio de este documento.</p>
+
+        <h2>11. Legislación aplicable</h2>
+        <p>Estos términos se rigen por la legislación española. Si eres consumidor, no pierdes los derechos que esa legislación te reconoce.</p>
+      </div>
+    </article>
+
+    <nav class="legal-nav">
+      <a href="/privacidad">Política de privacidad</a>
+      <a href="/terminos">Términos de uso</a>
+      <a data-home href="/">Volver</a>
+    </nav>
+  </main>
+
+  <script src="/js/common.js"></script>
+  <script src="/js/legal.js"></script>
+</body>
+</html>

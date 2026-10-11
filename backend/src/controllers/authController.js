@@ -3,6 +3,7 @@ const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const { z } = require('zod');
+const { legal } = require('../config/legal');
 const saltRounds = 10;
 
 // ---------------------- REGISTER ----------------------
@@ -12,13 +13,21 @@ const registerSchema = z.object({
   username: z.string().trim().toLowerCase().regex(/^[a-z0-9_.]{3,20}$/),
   email: z.string().trim().toLowerCase().email().max(254),
   contraseña: z.string().min(8).max(72), // bcrypt ignora a partir del byte 72
+  // Debe llegar marcada: es la constancia de que el usuario ha leído la política de privacidad
+  aceptaPolitica: z.literal(true),
 });
 
 exports.register = async (req, res) => {
   try {
     const parsed = registerSchema.safeParse(req.body);
     if (!parsed.success) {
-      return res.status(400).json({ success: false, message: 'Datos de registro no válidos' });
+      const missingConsent = parsed.error.issues.some((i) => i.path[0] === 'aceptaPolitica');
+      return res.status(400).json({
+        success: false,
+        message: missingConsent
+          ? 'Debes aceptar la política de privacidad y los términos de uso para registrarte'
+          : 'Datos de registro no válidos',
+      });
     }
     const { email, contraseña, nombre, telefono, username } = parsed.data;
 
@@ -34,6 +43,9 @@ exports.register = async (req, res) => {
         telefono: telefono || null,
         rol: 'user',
         qr_code: crypto.randomUUID(),
+        // Prueba de la aceptación: qué versión de los documentos y cuándo
+        politica_version: legal.version,
+        politica_aceptada_en: new Date().toISOString(),
       })
       .select('id, nombre, username, rol')
       .single();

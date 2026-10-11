@@ -8,6 +8,7 @@ Sistema de control de acceso para gimnasios. Cada socio tiene un código QR pers
 - Registro e inicio de sesión (con email o nombre de usuario).
 - Perfil con sus datos, estadísticas de visitas e historial de entrenamientos.
 - Código QR personal: visualizable, descargable y copiable.
+- Política de privacidad y términos de uso (`/privacidad` y `/terminos`), con aceptación obligatoria al registrarse.
 - **Edición de toda su información**: nombre, usuario, email, teléfono, dirección y datos de facturación, más cambio de contraseña.
 
 **Administrador**
@@ -26,7 +27,7 @@ Sistema de control de acceso para gimnasios. Cada socio tiene un código QR pers
 | Base de datos | Supabase (PostgreSQL) |
 | Autenticación | JWT + bcrypt, roles `user` / `admin` / `scanner` |
 | Frontend | HTML, CSS y JavaScript sin framework |
-| Librerías | `qrcodejs` (generar QR) y `html5-qrcode` (leer QR), servidas desde `frontend/vendor` |
+| Librerías y fuentes | `qrcodejs` y `html5-qrcode` (en `frontend/vendor`), fuentes Inter y Oswald (en `frontend/fonts`): todo se sirve desde el propio servidor, sin terceros |
 
 ## Estructura
 
@@ -37,9 +38,9 @@ GymWeb/
 │   ├── sql/                   # Scripts para Supabase (columnas, auditoría, borrado de cuentas)
 │   └── src/
 │       ├── server.js          # Servidor, helmet, límites de intentos, rutas, 404
-│       ├── config/            # Cliente de Supabase
+│       ├── config/            # Cliente de Supabase y datos legales (legal.js)
 │       ├── middleware/        # authMiddleware, adminMiddleware, scannerMiddleware
-│       ├── routes/            # auth, users, entries, audit
+│       ├── routes/            # auth, users, entries, audit, legal
 │       ├── controllers/       # Lógica de cada ruta
 │       └── utils/             # Validación de NIF/CIF
 └── frontend/                  # Páginas estáticas servidas por Express
@@ -48,8 +49,10 @@ GymWeb/
     ├── admin.html             # Panel de administración
     ├── audit.html             # Registro de auditoría (admin)
     ├── scanner.html           # Escáner de QR (admin o scanner)
+    ├── privacidad.html · terminos.html   # Documentos legales (se rellenan desde config/legal.js)
     ├── 403.html · 404.html    # Páginas de error
     ├── vendor/                # Librerías de QR (sin CDN)
+    ├── fonts/                 # Fuentes Inter y Oswald (licencia SIL OFL)
     └── js/ · styles.css
 ```
 
@@ -57,7 +60,8 @@ GymWeb/
 
 | Método | Ruta | Acceso | Descripción |
 |---|---|---|---|
-| POST | `/api/auth/register` | Público | Crear cuenta |
+| POST | `/api/auth/register` | Público | Crear cuenta (exige `aceptaPolitica: true`) |
+| GET | `/api/legal` | Público | Datos de los documentos legales (versión, responsable, proveedores...) |
 | POST | `/api/auth/login` | Público | Iniciar sesión, devuelve JWT |
 | GET | `/api/users/me` | Usuario | Mi perfil |
 | PATCH | `/api/users/me` | Usuario | Editar mis datos (email/usuario piden la contraseña actual) |
@@ -189,8 +193,11 @@ El escáner está pensado para dejarse abierto en una tablet de recepción. Para
       ```
    3. Ejecuta [backend/sql/edicion_perfil.sql](backend/sql/edicion_perfil.sql): columnas de dirección y facturación, y la tabla `audit_log` (con RLS).
    4. Ejecuta [backend/sql/baja_usuarios.sql](backend/sql/baja_usuarios.sql): función para eliminar cuentas.
+   5. Ejecuta [backend/sql/rgpd.sql](backend/sql/rgpd.sql): columnas con la versión de la política aceptada y la fecha. **Sin esto el registro falla.**
 
-4. **Arrancar**
+4. **Rellenar los datos legales** en [backend/src/config/legal.js](backend/src/config/legal.js) (ver la sección *Protección de datos (RGPD)*).
+
+5. **Arrancar**
    ```bash
    npm start          # o: npm run dev
    ```
@@ -207,6 +214,37 @@ El escáner está pensado para dejarse abierto en una tablet de recepción. Para
 - Auditoría de los cambios de perfil y de las acciones del admin sobre cuentas.
 - **RLS activado** en Supabase: el acceso a los datos solo se hace desde el backend con la `service_role` key.
 - En producción, servir siempre por **HTTPS** (la cámara del escáner lo exige fuera de localhost).
+
+## Protección de datos (RGPD)
+
+La aplicación incluye una **política de privacidad** (`/privacidad`) y unos **términos de uso** (`/terminos`) como **borrador**. Los textos están escritos, pero **todos los datos del responsable están sin rellenar a propósito**: los tienes que completar tú, y el borrador debe revisarlo un asesor o la herramienta gratuita **Facilita RGPD** de la AEPD antes de publicarlo.
+
+### Qué hay hecho
+- **Documentos legales** que se rellenan solos desde un único archivo de configuración, [backend/src/config/legal.js](backend/src/config/legal.js). Mientras haya datos pendientes, se muestran resaltados como `[PENDIENTE: ...]` y la página enseña un aviso de borrador; además, el servidor lista lo que falta cada vez que arranca.
+- **Aceptación al registrarse:** casilla obligatoria que enlaza a ambos documentos (se abren en otra pestaña). El servidor la exige y guarda **qué versión se aceptó y cuándo** (`politica_version` y `politica_aceptada_en` en `users`) como prueba.
+- **Sin terceros:** las fuentes ya no se cargan de Google (se enviaba la IP de cada visitante), y la CSP no permite ningún recurso externo. La política puede decir con verdad que no se cargan recursos de terceros.
+- **Auditoría sin valores personales** y borrado completo de cuentas (ver más arriba).
+
+### Qué tienes que rellenar tú en `legal.js`
+`null` = pendiente, `false` = no aplica (se oculta).
+
+| Campo | Qué poner |
+|---|---|
+| `responsable.nombre`, `.nif`, `.domicilio`, `.email` | Los datos del gimnasio o de la persona que explota el servicio. El email es el que se publica para ejercer derechos |
+| `responsable.telefono` | Un teléfono, o déjalo en `false` |
+| `dpo` | `false` si no tienes Delegado de Protección de Datos (lo normal en un gimnasio pequeño); si lo tienes, `{ nombre, email }` |
+| `edadMinima` | La edad mínima para registrarse. En España, con menos de 14 años hace falta autorización de padres o tutores |
+| `proveedores[].ubicacion` y `.garantias` | Dónde está tu proyecto de Supabase (conviene la UE) y tu proveedor de alojamiento. Si algún proveedor está fuera del EEE, la garantía aplicable; si está en la UE, `false` |
+| `proveedores[1].nombre` | El proveedor de alojamiento del servidor. Añade más proveedores (correo, pagos...) cuando los uses |
+| `conservacion.accesos`, `.auditoria`, `.cuentasInactivas` | Cuánto tiempo conservas cada cosa. Tienes que decidirlo, y luego implementar el borrado automático (ver pendientes) |
+
+Cuando cambies el contenido de los documentos, **sube `version`** en ese archivo.
+
+### Si el software se ofrece a varios gimnasios
+Cada gimnasio es el **responsable** del tratamiento de los datos de sus socios y necesita su propio `legal.js`. Quien desarrolla y mantiene el software actúa como **encargado del tratamiento**, y hace falta un **contrato de encargo** entre ambos (art. 28 RGPD). La AEPD ofrece modelos.
+
+### Lo que los textos todavía no pueden decir
+Cuando existan estas funciones habrá que **actualizar la política** (y subir la versión): que el socio puede descargar sus datos y eliminar su cuenta desde su perfil, el cifrado HTTPS de las comunicaciones al desplegar, y el proveedor de correo o de pagos si los añades.
 
 ## Integración continua (GitHub Actions)
 
@@ -232,6 +270,7 @@ El CI no usa ningún secreto. Cuando haya tests de la API se ejecutarán con una
 - Auditoría de las acciones del admin y de los cambios de perfil (tabla `audit_log`), con pantalla de consulta, filtros y paginación.
 - Seguridad base: validación en servidor, `helmet`, límite de intentos, RLS activado en Supabase, `node_modules` fuera de git.
 - Librerías de QR (`qrcodejs` y `html5-qrcode`) servidas desde `frontend/vendor`, sin CDN. La CSP solo permite scripts propios (`'self'`).
+- Política de privacidad y términos de uso (borrador, con los datos legales por rellenar), aceptación al registrarse con prueba de versión y fecha, y fuentes servidas desde el propio servidor.
 - Páginas 403 y 404, y URLs sin `.html` (`/`, `/login`, `/admin`...).
 - CI con GitHub Actions (sintaxis y ESLint) y Dependabot.
 
@@ -257,18 +296,19 @@ El CI no usa ningún secreto. Cuando haya tests de la API se ejecutarán con una
 - [ ] Actualizar `nodemon`: `package.json` tiene la versión 1.x, muy antigua; la 3.x es la actual.
 - [ ] Ejecutar `npm audit` y revisar el resultado (y valorar añadirlo al CI).
 - [ ] Escaneo de secretos (Gitleaks) y CodeQL en el CI.
-- [ ] Servir también las fuentes (Inter y Oswald, hoy desde Google Fonts) desde el propio servidor, para no depender de ningún tercero.
 - [ ] Botón para regenerar el QR en el perfil (el endpoint `POST /api/users/me/qr` ya existe).
 - [ ] Tests automáticos de la API (permisos por rol, validaciones y rutas de admin), que se ejecuten en el CI.
 - [ ] Guía de despliegue: dominio con HTTPS (Caddy), variables de entorno y copias de seguridad de Supabase.
 
 ### 📋 Más adelante
-**RGPD** (imprescindible antes de abrirlo a socios reales, porque se guardan NIF y direcciones)
-- [ ] Política de privacidad y términos de uso.
-- [ ] Casilla de aceptación en el registro.
-- [ ] Que el socio pueda descargar sus datos.
-- [ ] Que el socio pueda eliminar su propia cuenta.
-- [ ] Definir cuánto tiempo se conserva el historial de accesos y la auditoría.
+**RGPD** (imprescindible antes de abrirlo a socios reales; lo ya hecho está en la sección *Protección de datos*)
+- [ ] **Rellenar `legal.js`** y que lo revise un asesor o Facilita RGPD.
+- [ ] Botón para que el socio **descargue sus datos** (acceso y portabilidad).
+- [ ] Botón para que el socio **elimine su propia cuenta**.
+- [ ] **Borrado automático** según los plazos de conservación (historial de accesos, auditoría, cuentas inactivas).
+- [ ] Decidir qué pasa con las **cuentas anteriores** a la política (no tienen aceptación registrada): pedirles que la acepten al iniciar sesión.
+- [ ] Si se aceptan **menores**, decidir cómo se gestiona la autorización de padres o tutores.
+- [ ] Registro de actividades de tratamiento, contratos con proveedores y procedimiento ante brechas (con Facilita RGPD).
 
 **Mejoras de escáner y datos**
 - [ ] Evitar el doble escaneo accidental (tiempo mínimo entre lecturas).

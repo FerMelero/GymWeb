@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Política de privacidad · GymWeb</title>
+  <meta name="theme-color" content="#0a0c0f">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23c6ff34'/%3E%3Cpath d='M10 16h12M8 11v10M24 11v10M5 13v6M27 13v6' stroke='%230a0c0f' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body class="auth-page">
+  <div class="bg-blobs"><span></span><span></span><span></span></div>
+  <div class="bg-grid"></div>
+
+  <main class="legal-wrap">
+    <a class="brand" data-home href="/"><span class="brand-mark"><i data-icon="dumbbell" data-size="20"></i></span><b class="brand-name">Gym<span>Web</span></b></a>
+
+    <div class="draft-banner hidden" id="draftBanner" role="status">
+      <i data-icon="alert" data-size="18"></i>
+      <span>Documento en borrador: faltan datos por completar. No debe publicarse así.</span>
+    </div>
+
+    <article class="card legal" id="legal" aria-busy="true">
+      <p class="muted" id="legalLoading">Cargando…</p>
+      <div class="hidden" id="legalBody">
+        <h1 class="display">Política de <span class="accent">privacidad</span></h1>
+        <p class="legal-meta">Versión <span data-legal="version"></span> · Actualizada el <span data-legal="actualizadaFmt"></span></p>
+
+        <p>Esta política explica qué datos personales tratamos cuando usas esta aplicación de control de acceso al gimnasio, para qué los usamos y qué derechos tienes sobre ellos. Si algo no se entiende, escríbenos.</p>
+
+        <h2>1. Quién es el responsable</h2>
+        <ul>
+          <li><strong>Responsable:</strong> <span data-legal="responsable.nombre"></span></li>
+          <li><strong>NIF / CIF:</strong> <span data-legal="responsable.nif"></span></li>
+          <li><strong>Domicilio:</strong> <span data-legal="responsable.domicilio"></span></li>
+          <li><strong>Email de contacto:</strong> <span data-legal="responsable.email"></span></li>
+          <li data-legal-show="responsable.telefono"><strong>Teléfono:</strong> <span data-legal="responsable.telefono"></span></li>
+          <li data-legal-show="dpo"><strong>Delegado de protección de datos:</strong> <span data-legal="dpo.nombre"></span> · <span data-legal="dpo.email"></span></li>
+        </ul>
+
+        <h2>2. Qué datos tratamos</h2>
+        <div class="table-wrap">
+          <table class="table legal-table">
+            <thead><tr><th>Datos</th><th>Qué incluyen</th><th>De dónde salen</th></tr></thead>
+            <tbody>
+              <tr><td>Cuenta</td><td>Nombre, nombre de usuario, email, teléfono (opcional) y contraseña. La contraseña se guarda cifrada: nunca almacenamos la contraseña en sí.</td><td>Los facilitas tú al registrarte o al editar tu perfil.</td></tr>
+              <tr><td>Contacto y facturación (opcionales)</td><td>Dirección postal, nombre fiscal, NIF/CIF y dirección de cobro.</td><td>Los facilitas tú, o los actualiza el personal del gimnasio a petición tuya.</td></tr>
+              <tr><td>Identificador de acceso</td><td>Tu código QR personal.</td><td>Se genera automáticamente al crear la cuenta.</td></tr>
+              <tr><td>Registro de accesos</td><td>Fecha y hora de cada entrada y salida.</td><td>Se genera cuando escaneas tu código en recepción.</td></tr>
+              <tr><td>Registro de auditoría</td><td>Qué campos de una cuenta se han modificado, quién lo hizo y cuándo. No se guardan los valores anteriores ni los nuevos. Al eliminar una cuenta solo se conserva su nombre de usuario y su rol.</td><td>Se genera cuando se modifica, activa, desactiva o elimina una cuenta.</td></tr>
+              <tr><td>Datos técnicos</td><td>Dirección IP, usada de forma temporal para limitar intentos de acceso abusivos, y los datos de tu sesión. Los registros técnicos del servicio de alojamiento pueden conservar también la IP.</td><td>Se generan al usar la aplicación.</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2>3. Para qué los usamos y con qué base legal</h2>
+        <div class="table-wrap">
+          <table class="table legal-table">
+            <thead><tr><th>Finalidad</th><th>Base legal</th></tr></thead>
+            <tbody>
+              <tr><td>Crear y gestionar tu cuenta y darte acceso a la aplicación y al gimnasio.</td><td>Ejecución del contrato (art. 6.1.b RGPD).</td></tr>
+              <tr><td>Registrar tus entradas y salidas y mostrarte tu historial.</td><td>Ejecución del contrato (art. 6.1.b RGPD).</td></tr>
+              <tr><td>Gestionar la facturación y cumplir las obligaciones fiscales y contables.</td><td>Ejecución del contrato (art. 6.1.b) y obligación legal (art. 6.1.c RGPD).</td></tr>
+              <tr><td>Mantener la seguridad del servicio, evitar accesos no autorizados y dejar constancia de los cambios hechos sobre las cuentas.</td><td>Interés legítimo del responsable en la seguridad (art. 6.1.f RGPD).</td></tr>
+              <tr><td>Atender tus consultas y el ejercicio de tus derechos.</td><td>Obligación legal (art. 6.1.c RGPD).</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <p>No tomamos decisiones automatizadas ni elaboramos perfiles sobre ti. Esta aplicación no envía comunicaciones comerciales; si en el futuro se enviaran, solo sería con tu consentimiento previo, que podrías retirar cuando quisieras.</p>
+
+        <h2>4. Quién accede a tus datos</h2>
+        <ul>
+          <li><strong>Personal del gimnasio con rol de administración:</strong> accede a los datos de las cuentas en la medida necesaria para gestionar altas, accesos y facturación. Sus acciones sobre las cuentas quedan registradas.</li>
+          <li><strong>Proveedores que tratan datos por cuenta del responsable:</strong> <ul class="legal-providers" id="legalProviders"></ul></li>
+          <li><strong>Autoridades</strong> (por ejemplo, la administración tributaria) cuando exista una obligación legal.</li>
+        </ul>
+        <p>No vendemos tus datos ni los cedemos a terceros para sus propios fines.</p>
+
+        <h2>5. Transferencias fuera de la Unión Europea</h2>
+        <p>Algunos de los proveedores anteriores podrían tratar datos fuera del Espacio Económico Europeo. Cuando es así, solo se hace con las garantías adecuadas que se indican junto a cada proveedor. Si no se indica ninguna garantía, los datos permanecen en la UE/EEE.</p>
+
+        <h2>6. Cuánto tiempo los conservamos</h2>
+        <ul>
+          <li><strong>Datos de la cuenta:</strong> mientras mantengas la cuenta. Cuando se elimina, a petición tuya o por decisión del gimnasio, se borran, salvo lo que la ley obligue a conservar.</li>
+          <li><strong>Historial de accesos:</strong> <span data-legal="conservacion.accesos"></span></li>
+          <li><strong>Registro de auditoría:</strong> <span data-legal="conservacion.auditoria"></span></li>
+          <li><strong>Cuentas inactivas:</strong> <span data-legal="conservacion.cuentasInactivas"></span></li>
+          <li><strong>Datos de facturación:</strong> el tiempo que exija la normativa tributaria y mercantil.</li>
+        </ul>
+
+        <h2>7. Tus derechos</h2>
+        <p>Puedes ejercer en cualquier momento los derechos de <strong>acceso</strong>, <strong>rectificación</strong>, <strong>supresión</strong>, <strong>oposición</strong>, <strong>limitación del tratamiento</strong> y <strong>portabilidad</strong> escribiendo a <span data-legal="responsable.email"></span>. Podemos pedirte que acredites tu identidad. Te responderemos en el plazo de un mes, ampliable en casos complejos conforme al RGPD.</p>
+        <p>Además, puedes corregir tus datos y cambiar tu contraseña directamente desde tu perfil.</p>
+        <p>Si consideras que no tratamos tus datos correctamente, puedes presentar una reclamación ante la <strong>Agencia Española de Protección de Datos</strong> (<a href="https://www.aepd.es" target="_blank" rel="noopener noreferrer">www.aepd.es</a>, C/ Jorge Juan, 6, 28001 Madrid).</p>
+
+        <h2>8. Menores de edad</h2>
+        <p>Para crear una cuenta debes tener al menos <span data-legal="edadMinima"></span> años. En España, los menores de 14 años no pueden dar por sí solos su consentimiento al tratamiento de sus datos: necesitan la autorización de sus padres o tutores.</p>
+
+        <h2>9. Seguridad</h2>
+        <p>Aplicamos medidas técnicas y organizativas adecuadas: contraseñas almacenadas con cifrado irreversible, acceso restringido por roles (cada socio solo ve sus propios datos), límite de intentos de acceso y registro de auditoría de las acciones sobre las cuentas.</p>
+
+        <h2>10. Almacenamiento en tu navegador</h2>
+        <p>Esta aplicación solo usa el almacenamiento técnico imprescindible de tu navegador (los datos de tu sesión), necesario para que puedas iniciar sesión. No usamos cookies de publicidad ni de analítica, y no cargamos recursos de terceros: las fuentes y las librerías se sirven desde nuestro propio servidor.</p>
+
+        <h2>11. Cambios en esta política</h2>
+        <p>Si modificamos esta política de forma relevante, te lo comunicaremos. La versión y la fecha de la última actualización figuran al principio de este documento.</p>
+      </div>
+    </article>
+
+    <nav class="legal-nav">
+      <a href="/privacidad">Política de privacidad</a>
+      <a href="/terminos">Términos de uso</a>
+      <a data-home href="/">Volver</a>
+    </nav>
+  </main>
+
+  <script src="/js/common.js"></script>
+  <script src="/js/legal.js"></script>
+</body>
+</html>
